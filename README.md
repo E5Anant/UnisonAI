@@ -5,55 +5,29 @@ Fork of the OG REPO [UnisonAI](https://github.com/UnisonAI/UnisonAI/)
 
 <img src="https://github.com/UnisonAIInc/UnisonAI/blob/main/assets/UnisonAI_Banner.jpg" alt="UnisonAI Banner" width="100%"/>
 
-<h1><b>UnisonAI: The Multi-Agent Framework for Modern AI Collaboration</b></h1>
 <p>
   <i>Build, orchestrate, and scale intelligent agents—solo or in teams—using your favorite LLMs.</i>
 </p>
 
-<p>
-  <a href="https://github.com/UnisonAIInc/UnisonAI/stargazers">
-    <img src="https://img.shields.io/github/stars/UnisonAIInc/UnisonAI?style=for-the-badge" alt="GitHub Repo stars"/>
-  </a>
-  <a href="https://github.com/UnisonAIInc/UnisonAI/commits/main">
-    <img src="https://img.shields.io/github/last-commit/UnisonAIInc/UnisonAI?style=for-the-badge" alt="GitHub last commit"/>
-  </a>
-</p>
-
 </div>
 
----
 
 <div align="center">
 
-### 🌟 <b>UnisonAI: Orchestrate AI Agents with Power & Simplicity</b> 🌟
 <b>Compose teams of LLM-powered agents, extend with custom tools, and unlock collaborative AI automation.</b>
 </div>
 
 <br/>
 
-<p align="center">
-  <a href="#-overview">Overview</a> •
-  <a href="#-why-unisonai">Why UnisonAI?</a> •
-  <a href="#️-installation">Installation</a> •
-  <a href="#-core-components">Core Components</a> •
-  <a href="#-parameter-reference-tables">Parameter Reference Tables</a> •
-  <a href="#-usage-examples">Usage Examples</a> •
-  <a href="#-faq">FAQ</a> •
-  <a href="#-contributing-and-license">Contributing and License</a>
-</p>
-
-
----
-
-<div align="center">
-
-<img src="https://img.shields.io/badge/Python-%3E=3.10,%3C3.13-blue?style=flat-square" alt="Python Version"/>
-<img src="https://img.shields.io/badge/LLM%20Support-Mixtral%2C%20Grok%2C%20Gemini%2C%20OpenAI%2C%20Cohere%20%26%20more-orange?style=flat-square" alt="LLM Support"/>
-<img src="https://img.shields.io/badge/architecture-Single%20Agent%20%2F%20Clan%20(Multi--Agent)%20A2A%20(Agent%20to%20Agent)-purple?style=flat-square" alt="Architecture"/>
-
-</div>
-
----
+### Table of Content:
+<div><a href="#-overview">Overview</a></div>
+<div><a href="#-why-unisonai">Why UnisonAI?</a></div>
+<div><a href="#️-installation">Installation</a></div>
+<div><a href="#-core-components">Core Components</a></div>
+<div><a href="#-parameter-reference-tables">Parameter Reference Tables</a></div>
+<div><a href="#-usage-examples">Usage Examples</a></div>
+<div><a href="#-faq">FAQ</a></div>
+<div><a href="#-contributing-and-license">Contributing and License</a></div>
 
 ## 🚀 Overview
 
@@ -66,9 +40,9 @@ UnisonAI is a flexible and extensible Python framework for building, coordinatin
 Supports Cohere, Mixtral, Groq, Gemini, Grok, OpenAI, Anthropic, and any custom model (just extend `BaseLLM`). UnisonAI is designed for real-world, production-grade multi-agent AI applications.
 
 ### Uses A2A (Agent to Agent) Communication!
+<img src="https://github.com/UnisonAIInc/UnisonAI/blob/main/assets/Example.jpg" alt="Example" width="80%"/>
 
 <div><div></div></div>
-<img src="https://github.com/UnisonAIInc/UnisonAI/blob/main/assets/Example.jpg" alt="Example" width="60%"/>
 
 
 ---
@@ -89,6 +63,13 @@ Supports Cohere, Mixtral, Groq, Gemini, Grok, OpenAI, Anthropic, and any custom 
     <td>⚡ <b>Production-Ready</b><br>Designed for real-world automation & chatbots.</td>
   </tr>
 </table>
+</div>
+
+<div align="center">
+
+<img src="https://img.shields.io/badge/Python-%3E=3.10,%3C3.13-blue?style=flat-square" alt="Python Version"/>
+<img src="https://img.shields.io/badge/LLM%20Support-Mixtral%2C%20Grok%2C%20Gemini%2C%20OpenAI%2C%20Cohere%20%26%20more-orange?style=flat-square" alt="LLM Support"/>
+<img src="https://img.shields.io/badge/architecture-Single%20Agent%20%2F%20Clan%20(Multi--Agent)%20A2A%20(Agent%20to%20Agent)-purple?style=flat-square" alt="Architecture"/>
 </div>
 
 ---
@@ -246,7 +227,7 @@ web_agent.unleash(task="Find out what is the age of Trump")
 
 ### 🤖 Clan-Based Agents
 
-This is a refernce from [`main2.py`](https://github.com/UnisonAIInc/UnisonAI/blob/main/main2.py) FILE, check the file for the full complex example.
+**"This is a refernce from [`main2.py`](https://github.com/UnisonAIInc/UnisonAI/blob/main/main2.py) FILE, check the file for the full complex example."**
 
 ```python
 from unisonai import Agent, Clan
@@ -330,6 +311,15 @@ PRs and issues welcome! The project is under the Apache 2.0 License.
 <a href="https://github.com/UnisonAIInc/UnisonAI">Suggest improvements</a>
 
 <br/><br/>
+
+<p>
+  <a href="https://github.com/UnisonAIInc/UnisonAI/stargazers">
+    <img src="https://img.shields.io/github/stars/UnisonAIInc/UnisonAI?style=for-the-badge" alt="GitHub Repo stars"/>
+  </a>
+  <a href="https://github.com/UnisonAIInc/UnisonAI/commits/main">
+    <img src="https://img.shields.io/github/last-commit/UnisonAIInc/UnisonAI?style=for-the-badge" alt="GitHub last commit"/>
+  </a>
+</p>
 
 <a href="https://github.com/UnisonAIInc/UnisonAI/blob/main/LICENSE">
   <img src="https://img.shields.io/github/license/UnisonAIInc/UnisonAI?style=for-the-badge" alt="License: Apache 2.0"/>
