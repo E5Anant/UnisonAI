@@ -6,6 +6,7 @@ import os
 import colorama
 colorama.init(autoreset=True)
 
+
 def create_members(members: list[Any]):
     formatted_members = """"""
     for member in members:
@@ -15,8 +16,9 @@ def create_members(members: list[Any]):
         formatted_members += "  GOAL: " + member.task + "\n"
     return formatted_members
 
+
 class Clan:
-    def __init__(self, clan_name: str, manager:Agent, members: list[Agent], shared_instruction: str, goal: str, history_folder: str = "history", output_file:str = None):
+    def __init__(self, clan_name: str, manager: Agent, members: list[Agent], shared_instruction: str, goal: str, history_folder: str = "history", output_file: str = None):
         self.clan_name = clan_name
         self.goal = goal
         self.shared_instruction = shared_instruction
@@ -53,10 +55,15 @@ class Clan:
     def unleash(self):
         self.manager.llm.reset()
         # self.manager.llm.__init__(system_prompt=PLAN_PROMPT.format(members=self.members))
-        response = self.manager.llm.run(PLAN_PROMPT.format(members=self.formatted_members)+"\n\n" + "Make a plan To acomplish this task: \n" + self.goal)
-        print(colorama.Fore.LIGHTCYAN_EX+"Status: Planing...\n\n" + colorama.Fore.LIGHTYELLOW_EX + response)
+        response = self.manager.llm.run(PLAN_PROMPT.format(
+            members=self.formatted_members,
+            client_task=self.goal
+        ) + "\n\n" + "Make a plan To acomplish this task: \n" + self.goal)
+        print(colorama.Fore.LIGHTCYAN_EX+"Status: Planing...\n\n" +
+              colorama.Fore.LIGHTYELLOW_EX + response)
         # remove the <think> and </think> and all its content
-        response = re.sub(r"<think>(.*?)</think>", "", response, flags=re.DOTALL)
+        response = re.sub(r"<think>(.*?)</think>", "",
+                          response, flags=re.DOTALL)
         self.manager.llm.reset()
         for member in self.members:
             member.plan = response

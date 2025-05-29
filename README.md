@@ -7,7 +7,7 @@ Fork of the OG REPO [UnisonAI](https://github.com/UnisonAI/UnisonAI/)
 
 </div>
 
-UnisonAI is a flexible and extensible Python framework built on agent to agent (a2a) for building, coordinating, 
+UnisonAI is a flexible and extensible Python framework built on agent to agent (a2a) for building, coordinating,
 and scaling multiple AI agents—each powered by the LLM of your choice,
 unisonai helps in making individual agents on focused tasks as well as clan-based agent for extensive and complex tasks.
 
@@ -15,6 +15,7 @@ unisonai helps in making individual agents on focused tasks as well as clan-base
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](https://opensource.org/licenses/apache-2-0)
 
 # Table of Content:
+
 - [Overview](#overview)
 - [Why UnisonAI?](#why-unisonai)
 - [Installation](#installation)
@@ -23,7 +24,6 @@ unisonai helps in making individual agents on focused tasks as well as clan-base
 - [Usage Examples](#usage-examples)
 - [Faq?](#faq)
 - [Contributing And License](#contributing-and-license)
-
 
 ## Overview
 
@@ -38,10 +38,10 @@ Supports Cohere, Mixtral, Groq, Gemini, Grok, OpenAI, Anthropic, and any custom 
 ---
 
 ## Uses A2A (Agent to Agent) Communication!
+
 <img src="https://github.com/UnisonAIInc/UnisonAI/blob/main/assets/Example.jpg" alt="Example" width="80%"/>
 
 <div><div></div></div>
-
 
 ---
 
@@ -143,58 +143,58 @@ pip3 install unisonai
 
 ### Single_Agent
 
-| Parameter        | Type              | Description                  | Default     |
-|------------------|-------------------|------------------------------|-------------|
-| `llm`            | BaseLLM/any LLM   | LLM for the agent            | **Required**|
-| `identity`       | String            | Agent's unique name          | **Required**|
-| `description`    | String            | Agent’s purpose              | **Required**|
-| `verbose`        | Boolean           | Verbose/debug mode           | True        |
-| `tools`          | List              | Usable tools                 | []          |
-| `output_file`    | String            | Output file path             | None        |
-| `history_folder` | String            | Directory for logs/history   | "history"   |
+| Parameter        | Type            | Description                | Default      |
+| ---------------- | --------------- | -------------------------- | ------------ |
+| `llm`            | BaseLLM/any LLM | LLM for the agent          | **Required** |
+| `identity`       | String          | Agent's unique name        | **Required** |
+| `description`    | String          | Agent's purpose            | **Required** |
+| `verbose`        | Boolean         | Verbose/debug mode         | True         |
+| `tools`          | List            | Usable tools               | []           |
+| `output_file`    | String          | Output file path           | None         |
+| `history_folder` | String          | Directory for logs/history | "history"    |
 
 ### Agent
 
-| Parameter        | Type              | Description                  | Default     |
-|------------------|-------------------|------------------------------|-------------|
-| `llm`            | Gemini/any LLM    | LLM for the agent            | **Required**|
-| `identity`       | String            | Agent's unique name          | **Required**|
-| `description`    | String            | Responsibilities overview    | **Required**|
-| `task`           | String            | Agent’s core goal/task       | **Required**|
-| `verbose`        | Boolean           | Verbose/debug mode           | True        |
-| `tools`          | List              | Usable tools                 | []          |
+| Parameter     | Type           | Description               | Default      |
+| ------------- | -------------- | ------------------------- | ------------ |
+| `llm`         | Gemini/any LLM | LLM for the agent         | **Required** |
+| `identity`    | String         | Agent's unique name       | **Required** |
+| `description` | String         | Responsibilities overview | **Required** |
+| `task`        | String         | Agent's core goal/task    | **Required** |
+| `verbose`     | Boolean        | Verbose/debug mode        | True         |
+| `tools`       | List           | Usable tools              | []           |
 
 ### Clan
 
-| Parameter           | Type      | Description                          | Default     |
-|---------------------|-----------|--------------------------------------|-------------|
-| `clan_name`         | String    | Name of the clan                     | **Required**|
-| `manager`           | Agent     | Clan manager/leader                  | **Required**|
-| `members`           | List      | List of Agent instances              | **Required**|
-| `shared_instruction`| String    | Instructions for all agents          | **Required**|
-| `goal`              | String    | Unified clan objective               | **Required**|
-| `history_folder`    | String    | Log/history folder                   | "history"   |
-| `output_file`       | String    | Final output file                    | None        |
+| Parameter            | Type   | Description                 | Default      |
+| -------------------- | ------ | --------------------------- | ------------ |
+| `clan_name`          | String | Name of the clan            | **Required** |
+| `manager`            | Agent  | Clan manager/leader         | **Required** |
+| `members`            | List   | List of Agent instances     | **Required** |
+| `shared_instruction` | String | Instructions for all agents | **Required** |
+| `goal`               | String | Unified clan objective      | **Required** |
+| `history_folder`     | String | Log/history folder          | "history"    |
+| `output_file`        | String | Final output file           | None         |
 
 ### BaseTool & Field
 
 **BaseTool**
 
-| Attribute/Method | Description                         |
-|------------------|-------------------------------------|
-| `name`           | Tool name                           |
-| `description`    | Tool function summary               |
-| `params`         | List of Field objects (inputs)      |
-| `_run(**kwargs)` | Tool logic implementation           |
+| Attribute/Method | Description                    |
+| ---------------- | ------------------------------ |
+| `name`           | Tool name                      |
+| `description`    | Tool function summary          |
+| `params`         | List of Field objects (inputs) |
+| `_run(**kwargs)` | Tool logic implementation      |
 
 **Field**
 
-| Attribute         | Description                         | Default   |
-|-------------------|-------------------------------------|-----------|
-| `name`            | Parameter name                      | **Required**|
-| `description`     | Parameter purpose                   | **Required**|
-| `default_value`   | Default value                       | None      |
-| `required`        | Is parameter mandatory?             | True      |
+| Attribute       | Description             | Default      |
+| --------------- | ----------------------- | ------------ |
+| `name`          | Parameter name          | **Required** |
+| `description`   | Parameter purpose       | **Required** |
+| `default_value` | Default value           | None         |
+| `required`      | Is parameter mandatory? | True         |
 
 ---
 
@@ -208,6 +208,10 @@ This is the code from [`main.py`](https://github.com/UnisonAIInc/UnisonAI/blob/m
 from unisonai import Single_Agent
 from unisonai.llms import Gemini
 from unisonai.tools.websearch import WebSearchTool
+from unisonai import config
+
+# Configure API key
+config.set_api_key("gemini", "Your API Key")
 
 web_agent = Single_Agent(
     llm=Gemini(model="gemini-2.0-flash"),
@@ -218,19 +222,23 @@ web_agent = Single_Agent(
     output_file="output.txt"
 )
 
-web_agent.unleash(task="Find out what is the age of Trump")
+web_agent.unleash(task="Find out what is the current price of apple stocks")
 ```
 
 ---
 
 ### Clan-Based Agents
 
-**"This is a refernce from [`main2.py`](https://github.com/UnisonAIInc/UnisonAI/blob/main/main2.py) FILE, check the file for the full complex example."**
+**"This is a reference from [`main2.py`](https://github.com/UnisonAIInc/UnisonAI/blob/main/main2.py) FILE, check the file for the full complex example."**
 
 ```python
 from unisonai import Agent, Clan
 from unisonai.llms import Gemini
 from unisonai.tools.websearch import WebSearchTool
+from unisonai import config
+
+# Configure API key
+config.set_api_key("gemini", "Your API Key")
 
 time_agent = Agent(
     llm=Gemini(model="gemini-2.0-flash"),
@@ -260,6 +268,42 @@ clan = Clan(
 
 clan.unleash()
 ```
+
+---
+
+## API Key Configuration
+
+UnisonAI provides a flexible configuration system for managing API keys. You can set API keys in three ways:
+
+1. Using the configuration system:
+
+```python
+from unisonai import config
+
+config.set_api_key("gemini", "your-api-key")
+config.set_api_key("openai", "your-api-key")
+config.set_api_key("anthropic", "your-api-key")
+```
+
+or
+
+2. Setting environment variables:
+
+```bash
+export GEMINI_API_KEY="your-api-key"
+export OPENAI_API_KEY="your-api-key"
+export ANTHROPIC_API_KEY="your-api-key"
+```
+
+or
+
+3. Passing the API key directly when initializing the LLM:
+
+```python
+llm = Gemini(model="gemini-2.0-flash", api_key="your-api-key")
+```
+
+The API keys are stored in a JSON file at `~/.unisonai/config.json` for persistence across sessions.
 
 ---
 
@@ -295,6 +339,11 @@ clan.unleash()
   <p>Chatbots, collaborative planners, research assistants, workflow automation, and more!</p>
 </details>
 
+<details>
+  <summary><b>How do I manage API keys?</b></summary>
+  <p>You can manage API keys through the configuration system, environment variables, or by passing them directly to the LLM. The configuration system stores keys in <code>~/.unisonai/config.json</code> for persistence.</p>
+</details>
+
 ---
 
 ## Contributing and License
@@ -302,6 +351,8 @@ clan.unleash()
 <div align="center">
 
 <b>Founder:</b> <a href="https://github.com/E5Anant">@E5Anant</a> <br/>
+<b>Co-Founder:</b> <a href="https://github.com/AnonymousCoderArtist">@AnonymousCoderArtist</a> <br/>
+
 PRs and issues welcome! The project is under the Apache 2.0 License.
 
 <a href="https://github.com/UnisonAIInc/UnisonAI/issues">Open issues</a> •

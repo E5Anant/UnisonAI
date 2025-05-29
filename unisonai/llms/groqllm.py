@@ -1,17 +1,20 @@
 from dotenv import load_dotenv
 from groq import Groq
 import os
+from unisonai.config import config
 
 load_dotenv()
+
 
 class GroqLLM:
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
+    MODEL = "model"
 
     def __init__(self,
                  messages: list[dict[str, str]] = [],
-                 model: str = "llama3-70b-8192",
+                 model: str = "mixtral-8x7b-32768",
                  temperature: float = 0.0,
                  system_prompt: str | None = None,
                  max_tokens: int = 2048,
@@ -19,8 +22,25 @@ class GroqLLM:
                  verbose: bool = False,
                  api_key: str | None = None
                  ):
-        self.api_key = api_key if api_key else os.getenv("GROQ_API_KEY")
-        self.gr = Groq(api_key=self.api_key)
+        # Configure API key
+        if api_key:
+            config.set_api_key('groq', api_key)
+            self.client = Groq(api_key=api_key)
+        else:
+            stored_key = config.get_api_key('groq')
+            if stored_key:
+                self.client = Groq(api_key=stored_key)
+            elif os.getenv("GROQ_API_KEY"):
+                config.set_api_key('groq', os.getenv("GROQ_API_KEY"))
+                self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            else:
+                raise ValueError(
+                    "No API key provided. Please provide an API key either through:\n"
+                    "1. The api_key parameter\n"
+                    "2. config.set_api_key('groq', 'your-api-key')\n"
+                    "3. GROQ_API_KEY environment variable"
+                )
+
         self.messages = messages
         self.model = model
         self.temperature = temperature
@@ -28,14 +48,13 @@ class GroqLLM:
         self.max_tokens = max_tokens
         self.connectors = connectors
         self.verbose = verbose
-        self.client = Groq(api_key=api_key)
         if self.system_prompt is not None:
             self.add_message(self.SYSTEM, self.system_prompt)
 
-    def run(self, prompt: str, save_messages:bool = True) -> str:
+    def run(self, prompt: str, save_messages: bool = True) -> str:
         if save_messages:
             self.add_message(self.USER, prompt)
-        self.stream = self.gr.chat.completions.create(
+        self.stream = self.client.chat.completions.create(
             model=self.model,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
@@ -131,6 +150,7 @@ class GroqLLM:
         """
         self.messages = []
         self.system_prompt = None  # Reinitialize the instance to reset everything
+
 
 if __name__ == "__main__":
     llm = GroqLLM(verbose=False)

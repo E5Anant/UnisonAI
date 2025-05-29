@@ -2,7 +2,8 @@ import anthropic
 import os
 from dotenv import load_dotenv
 from rich import print
-from typing import Type, Optional
+from typing import Type, Optional, List, Dict
+from unisonai.config import config
 
 load_dotenv()
 
@@ -11,15 +12,17 @@ class Anthropic:
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
+    MODEL = "model"
 
     def __init__(
             self,
             messages: list[dict[str, str]] = [],
-            model: str = "claude-3-7-sonnet-20250219",
-            temperature: Optional[float] = 0.7,
-            system_prompt: Optional[str] = None,
+            model: str = "claude-3-opus-20240229",
+            temperature: float = 0.0,
+            system_prompt: str | None = None,
             max_tokens: int = 2048,
-            verbose: Optional[bool] = False,
+            connectors: list[str] = [],
+            verbose: bool = False,
             api_key: str | None = None
     ) -> None:
         """
@@ -32,11 +35,13 @@ class Anthropic:
         model : str, optional
             The model to use, by default "claude-3-opus-20240229"
         temperature : float, optional
-            The temperature to use, by default 0.7
+            The temperature to use, by default 0.0
         system_prompt : str, optional
-            The system prompt to use, by default ""
+            The system prompt to use, by default None
         max_tokens : int, optional
             The max tokens to use, by default 2048
+        connectors : list[str], optional
+            The list of connectors to use, by default []
         verbose : bool, optional
             The verbose to use, by default False
         api_key : str|None, optional
@@ -47,13 +52,32 @@ class Anthropic:
         >>> llm = LLM()
         >>> llm.add_message("User", "Hello, how are you?")
         """
-        self.api_key = api_key if api_key else os.getenv("ANTHROPIC_API_KEY")
-        self.client = anthropic.Anthropic(api_key=self.api_key)
+        # Configure API key
+        if api_key:
+            config.set_api_key('anthropic', api_key)
+            self.client = anthropic.Anthropic(api_key=api_key)
+        else:
+            stored_key = config.get_api_key('anthropic')
+            if stored_key:
+                self.client = anthropic.Anthropic(api_key=stored_key)
+            elif os.getenv("ANTHROPIC_API_KEY"):
+                config.set_api_key('anthropic', os.getenv("ANTHROPIC_API_KEY"))
+                self.client = anthropic.Anthropic(
+                    api_key=os.getenv("ANTHROPIC_API_KEY"))
+            else:
+                raise ValueError(
+                    "No API key provided. Please provide an API key either through:\n"
+                    "1. The api_key parameter\n"
+                    "2. config.set_api_key('anthropic', 'your-api-key')\n"
+                    "3. ANTHROPIC_API_KEY environment variable"
+                )
+
         self.messages = messages
         self.model = model
         self.temperature = temperature
         self.system_prompt = system_prompt
         self.max_tokens = max_tokens
+        self.connectors = connectors
         self.verbose = verbose
 
         if self.system_prompt is not None:

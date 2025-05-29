@@ -4,6 +4,11 @@ from unisonai import Clan
 from unisonai import BaseTool, Field
 from unisonai.tools.websearch import WebSearchTool
 from unisonai.llms import Gemini
+from unisonai import config
+
+config.set_api_key("gemini", "Your API Key")
+
+
 
 # Custom Tool 1: Time Tool
 class TimeTool(BaseTool):

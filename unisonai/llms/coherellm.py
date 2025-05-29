@@ -1,26 +1,29 @@
-import cohere 
+import cohere
 import os
 from dotenv import load_dotenv
 from rich import print
-from typing import Type,Optional
+from typing import Type, Optional, List, Dict
+from unisonai.config import config
 
 load_dotenv()
 
+
 class Cohere:
-    USER = "User"
-    MODEL = "Chatbot"
+    USER = "user"
+    MODEL = "model"
     SYSTEM = "System"
+
     def __init__(
             self,
             messages: list[dict[str, str]] = [],
-            model: str = "command-r-plus",
-            temperature:Optional[float] = 0.7,
-            system_prompt:Optional[str] = None,
+            model: str = "command",
+            temperature: float = 0.0,
+            system_prompt: str | None = None,
             max_tokens: int = 2048,
-            connectors:Optional[list[str]] = [],
-            verbose:Optional[bool] = False,
-            api_key:str|None = None
-            ) -> None:
+            connectors: list[str] = [],
+            verbose: bool = False,
+            api_key: str | None = None
+    ) -> None:
         """
         Initialize the LLM
 
@@ -29,7 +32,7 @@ class Cohere:
         messages : list[dict[str, str]], optional
             The list of messages, by default []
         model : str, optional
-            The model to use, by default "command-r-plus"
+            The model to use, by default "command"
         temperature : float, optional
             The temperature to use, by default 0.0
         system_prompt : str, optional
@@ -48,8 +51,26 @@ class Cohere:
         >>> llm = LLM()
         >>> llm.add_message("User", "Hello, how are you?")
         """
-        self.api_key = api_key if api_key else os.getenv("COHERE_API_KEY")
-        self.co = cohere.Client(api_key)
+        # Configure API key
+        if api_key:
+            config.set_api_key('cohere', api_key)
+            self.client = cohere.Client(api_key=api_key)
+        else:
+            stored_key = config.get_api_key('cohere')
+            if stored_key:
+                self.client = cohere.Client(api_key=stored_key)
+            elif os.getenv("COHERE_API_KEY"):
+                config.set_api_key('cohere', os.getenv("COHERE_API_KEY"))
+                self.client = cohere.Client(
+                    api_key=os.getenv("COHERE_API_KEY"))
+            else:
+                raise ValueError(
+                    "No API key provided. Please provide an API key either through:\n"
+                    "1. The api_key parameter\n"
+                    "2. config.set_api_key('cohere', 'your-api-key')\n"
+                    "3. COHERE_API_KEY environment variable"
+                )
+
         self.messages = messages
         self.model = model
         self.temperature = temperature
@@ -58,9 +79,10 @@ class Cohere:
         self.connectors = connectors
         self.verbose = verbose
 
-        if self.system_prompt!=None:self.add_message(self.SYSTEM, self.system_prompt)
+        if self.system_prompt != None:
+            self.add_message(self.SYSTEM, self.system_prompt)
 
-    def run(self, prompt: str, save_messages:bool = True) -> str:
+    def run(self, prompt: str, save_messages: bool = True) -> str:
         if save_messages:
             self.add_message(self.USER, prompt)
         """
@@ -81,16 +103,16 @@ class Cohere:
         >>> llm.run("Hello, how are you?")
         "I'm doing well, thank you!"
         """
-        self.stream = self.co.chat_stream(
-            model = self.model,
-            message = prompt,
-            temperature = self.temperature,
-            chat_history = self.messages,
-            connectors = self.connectors,
-            preamble = self.system_prompt,
-            max_tokens = self.max_tokens,
-            )
-        response:str = ""
+        self.stream = self.client.chat_stream(
+            model=self.model,
+            message=prompt,
+            temperature=self.temperature,
+            chat_history=self.messages,
+            connectors=self.connectors,
+            preamble=self.system_prompt,
+            max_tokens=self.max_tokens,
+        )
+        response: str = ""
         for event in self.stream:
             if event.event_type == "text-generation":
                 if self.verbose:
@@ -121,8 +143,8 @@ class Cohere:
         >>> llm.add_message("Chatbot", "I'm doing well, thank you!")
         """
         self.messages.append({"role": role, "message": content})
-    
-    def __getitem__(self, index) -> dict[str, str]|list[dict[str, str]]:
+
+    def __getitem__(self, index) -> dict[str, str] | list[dict[str, str]]:
         """
         Get a message from the list of messages
 
@@ -186,7 +208,7 @@ class Cohere:
             self.messages[index] = value
         else:
             raise TypeError("Invalid argument type")
-        
+
     def reset(self) -> None:
         """
         Reset the system prompts and messages
@@ -197,7 +219,8 @@ class Cohere:
         """
         self.messages = []
         self.system_prompt = None
-        
+
+
 if __name__ == "__main__":
     llm = Cohere(verbose=False)
     while True:

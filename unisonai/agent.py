@@ -34,9 +34,9 @@ def create_tools(tools: list):
 class Agent:
     def __init__(self,
                  llm: Gemini,
-                 identity: str, # Name of the agent
-                 description: str, # Description of the agent
-                 task: str, # A Base Example Task According to agents's work
+                 identity: str,  # Name of the agent
+                 description: str,  # Description of the agent
+                 task: str,  # A Base Example Task According to agents's work
                  verbose: bool = True,
                  tools: list[Any] = []):
         self.llm = llm
@@ -76,7 +76,8 @@ class Agent:
 
     def _get_agent_by_name(self, agent_name: str):
         """Find the closest matching agent from rawmembers based on fuzzy name matching."""
-        ceo_manager_variations = ["ceo", "manager", "ceo/manager", "ceo-manager", "ceo manager"]
+        ceo_manager_variations = ["ceo", "manager",
+                                  "ceo/manager", "ceo-manager", "ceo manager"]
         agent_name_clean = agent_name.lower().strip()
         for prefix in ["agent ", " agent", "the "]:
             agent_name_clean = agent_name_clean.replace(prefix, "")
@@ -87,7 +88,8 @@ class Agent:
         if agent_name_clean in available_agents_lower:
             index = available_agents_lower.index(agent_name_clean)
             return available_agents[index]
-        matches = difflib.get_close_matches(agent_name_clean, available_agents_lower, n=1, cutoff=0.6)
+        matches = difflib.get_close_matches(
+            agent_name_clean, available_agents_lower, n=1, cutoff=0.6)
         if matches:
             index = available_agents_lower.index(matches[0])
             return available_agents[index]
@@ -96,10 +98,13 @@ class Agent:
     def send_message(self, agent_name: str, message: str, additional_resource: str = None, sender: str = None):
         matched_agent_name = self._get_agent_by_name(agent_name)
         if matched_agent_name != agent_name and self.verbose:
-            print(f"{Fore.YELLOW}Note: Agent name '{agent_name}' was matched to '{matched_agent_name}'")
-        print(Fore.LIGHTCYAN_EX + f"Status: Sending message to {matched_agent_name}" + Style.RESET_ALL)
+            print(
+                f"{Fore.YELLOW}Note: Agent name '{agent_name}' was matched to '{matched_agent_name}'")
+        print(Fore.LIGHTCYAN_EX +
+              f"Status: Sending message to {matched_agent_name}" + Style.RESET_ALL)
         msg = f"""MESSAGE FROM: {sender}\nMESSAGE TO: {matched_agent_name}\n\n{message}\n\nADDITIONAL RESOURCE:\n{additional_resource}"""
-        is_manager_message = matched_agent_name in ["CEO/Manager", "Manager", "CEO"]
+        is_manager_message = matched_agent_name in [
+            "CEO/Manager", "Manager", "CEO"]
         for member in self.rawmembers:
             if is_manager_message:
                 if member.ask_user:
@@ -138,7 +143,8 @@ class Agent:
                 history = f.read()
                 self.messages = json.loads(history) if history else []
         except FileNotFoundError:
-            open(f"{folder}/{self.identity}.json", "w", encoding="utf-8").close()
+            open(f"{folder}/{self.identity}.json",
+                 "w", encoding="utf-8").close()
             self.messages = []
         self.llm.reset()
         if self.tools:
@@ -146,12 +152,12 @@ class Agent:
                 self.llm.__init__(
                     messages=self.messages,
                     system_prompt=MANAGER_PROMPT.format(
-                        member=self.members,
+                        members=self.members,
                         shared_instruction=self.shared_instruction,
                         identity=self.identity,
                         description=self.description,
                         task=self.task,
-                        user_task=self.user_task,
+                        user_task=task,
                         tools=self.tools,
                         plan=self.plan,
                         clan_name=self.clan_name
@@ -165,7 +171,7 @@ class Agent:
                         description=self.description,
                         task=self.task,
                         tools=self.tools,
-                        user_task=self.user_task,
+                        user_task=task,
                         shared_instruction=self.shared_instruction,
                         members=self.members,
                         plan=self.plan,
@@ -182,7 +188,7 @@ class Agent:
                         identity=self.identity,
                         description=self.description,
                         task=self.task,
-                        user_task=self.user_task,
+                        user_task=task,
                         plan=self.plan,
                         tools="No Provided Tools",
                         clan_name=self.clan_name
@@ -197,7 +203,7 @@ class Agent:
                         task=self.task,
                         tools="No Provided Tools",
                         plan=self.plan,
-                        user_task=self.user_task,
+                        user_task=task,
                         shared_instruction=self.shared_instruction,
                         members=self.members,
                         clan_name=self.clan_name
@@ -215,7 +221,8 @@ class Agent:
             print(response)
         yaml_blocks = re.findall(r"```yml(.*?)```", response, flags=re.DOTALL)
         if not yaml_blocks:
-            yaml_blocks = re.findall(r"```yaml(.*?)```", response, flags=re.DOTALL)
+            yaml_blocks = re.findall(
+                r"```yaml(.*?)```", response, flags=re.DOTALL)
         if not yaml_blocks:
             return response
         yaml_content = yaml_blocks[0].strip()
@@ -234,16 +241,19 @@ class Agent:
             print(f"{Fore.MAGENTA}Thoughts: {thoughts}\n{Fore.GREEN}Using Tool ({name})\n{Fore.LIGHTYELLOW_EX}Params: {params}")
             if name == "send_message":
                 if isinstance(params, dict) and "agent_name" in params and "message" in params:
-                    self.send_message(params["agent_name"], params["message"], params.get("additional_resource"), sender=self.identity)
+                    self.send_message(params["agent_name"], params["message"], params.get(
+                        "additional_resource"), sender=self.identity)
                 else:
-                    print(f"{Fore.RED}Error: Missing required parameters for send_message tool. Need 'agent_name' and 'message'.")
+                    print(
+                        f"{Fore.RED}Error: Missing required parameters for send_message tool. Need 'agent_name' and 'message'.")
                     print(f"{Fore.RED}Available params: {params}")
             elif name == "ask_user":
                 if isinstance(params, dict) and "question" in params:
                     print("QUESTION: " + params["question"])
                     self.unleash(input("You: "))
                 else:
-                    question = str(params) if params else "What would you like to say?"
+                    question = str(
+                        params) if params else "What would you like to say?"
                     print("QUESTION: " + question)
                     self.unleash(input("You: "))
             elif name == "pass_result":
@@ -252,12 +262,14 @@ class Agent:
                 else:
                     print("RESULT: " + str(params))
                 while True:
-                    decision = input("Does this result meet your requirements? (y/n): ")
+                    decision = input(
+                        "Does this result meet your requirements? (y/n): ")
                     if decision.lower() == "y":
                         print("Result accepted. Ending process smoothly.")
                         if self.output_file:
                             with open(self.output_file, "w", encoding="utf-8") as file:
-                                file.write(str(params["result"]) or str(params))
+                                file.write(
+                                    str(params["result"]) or str(params))
                         sys.exit(0)
                     elif decision.lower() == "n":
                         tweaks = input("What tweaks would you like to make? ")
@@ -268,35 +280,45 @@ class Agent:
             else:
                 # Execute the tool by first ensuring we have an instance.
                 for tool in self.rawtools:
-                    tool_instance = tool if not isinstance(tool, type) else tool()
+                    tool_instance = tool if not isinstance(
+                        tool, type) else tool()
                     if tool_instance.name.lower() == name.lower():
                         try:
                             if isinstance(params, dict):
                                 tool_response = tool_instance._run(**params)
                             else:
                                 tool_response = tool_instance._run()
-                            print(Fore.LIGHTCYAN_EX + "Status: Executing Tool...\n")
+                            print(Fore.LIGHTCYAN_EX +
+                                  "Status: Executing Tool...\n")
                             print("Tool Response:")
                             print(tool_response)
-                            self.unleash("Here is your tool response:\n\n" + str(tool_response))
+                            self.unleash(
+                                "Here is your tool response:\n\n" + str(tool_response))
                             break
                         except TypeError as e:
-                            print(f"{Fore.RED}TypeError when executing tool '{name}': {e}")
+                            print(
+                                f"{Fore.RED}TypeError when executing tool '{name}': {e}")
                             # Check for errors related to missing self or duplicate parameters.
-                            if ("missing 1 required positional argument: 'self'" in str(e) or 
-                                "got multiple values for argument" in str(e)):
+                            if ("missing 1 required positional argument: 'self'" in str(e) or
+                                    "got multiple values for argument" in str(e)):
                                 try:
-                                    print(f"{Fore.LIGHTCYAN_EX}Status: Executing Tool (via unbound method)...\n")
+                                    print(
+                                        f"{Fore.LIGHTCYAN_EX}Status: Executing Tool (via unbound method)...\n")
                                     # Call the unbound _run method from the class so that self is not passed twice.
-                                    tool_response = tool_instance.__class__._run(**params)
+                                    tool_response = tool_instance.__class__._run(
+                                        **params)
                                     print("Tool Response:")
                                     print(tool_response)
-                                    self.unleash("Here is your tool response:\n\n" + str(tool_response))
+                                    self.unleash(
+                                        "Here is your tool response:\n\n" + str(tool_response))
                                     break
                                 except Exception as inner_e:
-                                    print(f"{Fore.RED}Failed to execute tool via unbound method: {inner_e}")
+                                    print(
+                                        f"{Fore.RED}Failed to execute tool via unbound method: {inner_e}")
                         except Exception as e:
-                            print(f"{Fore.RED}Error executing tool '{name}': {e}")
+                            print(
+                                f"{Fore.RED}Error executing tool '{name}': {e}")
         else:
-            print(Fore.RED + "YAML block found, but it doesn't match the expected format.")
+            print(
+                Fore.RED + "YAML block found, but it doesn't match the expected format.")
             return response

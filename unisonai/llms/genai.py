@@ -3,8 +3,10 @@ from dotenv import load_dotenv
 from typing import List, Dict
 import google.generativeai as genaii
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from unisonai.config import config
 
 load_dotenv()
+
 
 class Gemini:
     USER = "user"
@@ -14,23 +16,43 @@ class Gemini:
                  messages: list[dict[str, str]] = [],
                  model: str = "gemini-2.0-flash",
                  temperature: float = 0.0,
-                 system_prompt: str|None = None,
+                 system_prompt: str | None = None,
                  max_tokens: int = 2048,
                  connectors: list[str] = [],
                  verbose: bool = False,
-                 safety_settings:list = [],
-                 api_key: str|None = None
+                 safety_settings: list = [],
+                 api_key: str | None = None
                  ):
         self.safety_settings = [
-        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
         ]
         if safety_settings:
             self.safety_settings = safety_settings
-        self.api_key = api_key if api_key else os.getenv("GEMINI_API_KEY")
-        genaii.configure(api_key=self.api_key)
+
+        # Configure API key
+        if api_key:
+            config.set_api_key('gemini', api_key)
+            os.environ["GOOGLE_API_KEY"] = api_key
+        else:
+            stored_key = config.get_api_key('gemini')
+            if stored_key:
+                os.environ["GOOGLE_API_KEY"] = stored_key
+            elif os.getenv("GEMINI_API_KEY"):
+                config.set_api_key('gemini', os.getenv("GEMINI_API_KEY"))
+                os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
+            else:
+                raise ValueError(
+                    "No API key provided. Please provide an API key either through:\n"
+                    "1. The api_key parameter\n"
+                    "2. config.set_api_key('gemini', 'your-api-key')\n"
+                    "3. GEMINI_API_KEY environment variable"
+                )
+
+        genaii.configure(api_key=os.environ["GOOGLE_API_KEY"])
+
         self.messages = messages
         self.model = model
         self.temperature = temperature
@@ -49,15 +71,15 @@ class Gemini:
         )
         if self.system_prompt:
             self.client = genaii.GenerativeModel(
-            model_name=self.model,
-            system_instruction=system_prompt,
-            safety_settings=safety_settings,
-            generation_config={
-                "temperature": self.temperature,
-                "max_output_tokens": self.max_tokens,
-                "response_mime_type": "text/plain",
-            }
-        )
+                model_name=self.model,
+                system_instruction=system_prompt,
+                safety_settings=safety_settings,
+                generation_config={
+                    "temperature": self.temperature,
+                    "max_output_tokens": self.max_tokens,
+                    "response_mime_type": "text/plain",
+                }
+            )
 
     def run(self, prompt: str, save_messages: bool = True) -> str:
         if save_messages:
@@ -75,7 +97,7 @@ class Gemini:
         # Adjusting message structure for Gemini
         self.messages.append({"role": role, "parts": [content]})
 
-    def __getitem__(self, index) -> dict[str, str]|list[dict[str, str]]:
+    def __getitem__(self, index) -> dict[str, str] | list[dict[str, str]]:
         if isinstance(index, slice):
             return self.messages[index]
         elif isinstance(index, int):
@@ -90,7 +112,7 @@ class Gemini:
             self.messages[index] = value
         else:
             raise TypeError("Invalid argument type")
-    
+
     def reset(self) -> None:
         """
         Reset the system prompts and messages
@@ -113,7 +135,8 @@ class Gemini:
 
 
 if __name__ == "__main__":
-    llm = Gemini(system_prompt="Helpful Assistant.", messages=[{'role': 'user', 'parts': ['hello']}, {'role': 'model', 'parts': ['Hi there! How can I help you today?\n']}])
+    llm = Gemini(system_prompt="Helpful Assistant.", messages=[{'role': 'user', 'parts': [
+                 'hello']}, {'role': 'model', 'parts': ['Hi there! How can I help you today?\n']}])
     while True:
         q = input(">>> ")
         answer = llm.run(q)
@@ -121,5 +144,3 @@ if __name__ == "__main__":
         print("Before Reset:", llm.messages)
         llm.reset()
         print("After Reset:", llm.messages)
-
-        

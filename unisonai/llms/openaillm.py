@@ -1,38 +1,60 @@
-from openai import OpenAI
+from openai import OpenAI as OpenAIClient
 import os
 from dotenv import load_dotenv
 from rich import print
-from typing import Type, Optional
+from typing import Type, Optional, List, Dict
+import openai
+from unisonai.config import config
 
 load_dotenv()
 
+
 class Openai:
     USER = "user"
-    MODEL = "assistant"
-    SYSTEM = "system"
-    def __init__(
-            self,
-            base_url: str = "https://api.openai.com/v1",
-            messages: list[dict[str, str]] = [],
-            model: str = "gpt-4-1106-preview",  # Updated default model
-            temperature: Optional[float] = 0.7,
-            system_prompt: Optional[str] = None,
-            max_tokens: int = 2048,
-            api_key: str | None = None
-    ) -> None:
-        self.api_key = api_key if api_key else os.getenv("OPENAI_API_KEY")
-        self.base_url = base_url
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+    MODEL = "model"
+
+    def __init__(self,
+                 messages: list[dict[str, str]] = [],
+                 model: str = "gpt-3.5-turbo",
+                 temperature: float = 0.0,
+                 system_prompt: str | None = None,
+                 max_tokens: int = 2048,
+                 connectors: list[str] = [],
+                 verbose: bool = False,
+                 api_key: str | None = None
+                 ):
+        # Configure API key
+        if api_key:
+            config.set_api_key('openai', api_key)
+            openai.api_key = api_key
+        else:
+            stored_key = config.get_api_key('openai')
+            if stored_key:
+                openai.api_key = stored_key
+            elif os.getenv("OPENAI_API_KEY"):
+                config.set_api_key('openai', os.getenv("OPENAI_API_KEY"))
+                openai.api_key = os.getenv("OPENAI_API_KEY")
+            else:
+                raise ValueError(
+                    "No API key provided. Please provide an API key either through:\n"
+                    "1. The api_key parameter\n"
+                    "2. config.set_api_key('openai', 'your-api-key')\n"
+                    "3. OPENAI_API_KEY environment variable"
+                )
+
+        self.client = OpenAIClient(api_key=openai.api_key)
         self.messages = messages
         self.model = model
         self.temperature = temperature
         self.system_prompt = system_prompt
         self.max_tokens = max_tokens
+        self.connectors = connectors
+        self.verbose = verbose
 
         if self.system_prompt is not None:
-            self.add_message(self.SYSTEM, self.system_prompt)
+            self.add_message(self.USER, self.system_prompt)
 
-    def run(self, prompt: str, save_messages:bool = True) -> str:
+    def run(self, prompt: str, save_messages: bool = True) -> str:
         if save_messages:
             self.add_message(self.USER, prompt)
         response_content = ""
@@ -74,8 +96,9 @@ class Openai:
         self.messages = []
         self.system_prompt = None
 
+
 if __name__ == "__main__":
-    llm = Openai(model="gpt-3.5-turbo") 
+    llm = OpenAIClient(model="gpt-3.5-turbo")
     llm.add_message("User", "Hello, how are you?")
     llm.add_message("Chatbot", "I'm doing well, thank you!")
     print(llm.run("Say this is a test"))

@@ -100,7 +100,8 @@ class Single_Agent:
                     history = f.read()
                     self.messages = json.loads(history) if history else []
             except FileNotFoundError:
-                open(f"{folder}/{self.identity}.json", "w", encoding="utf-8").close()
+                open(f"{folder}/{self.identity}.json",
+                     "w", encoding="utf-8").close()
                 self.messages = []
         else:
             self.messages = []
@@ -113,7 +114,9 @@ class Single_Agent:
                     description=self.description,
                     user_task=self.user_task,
                     tools=self.tools,
-                )
+                ),
+                # Preserve the API key
+                api_key=os.environ.get("GOOGLE_API_KEY")
             )
         else:
             self.llm.__init__(
@@ -123,7 +126,9 @@ class Single_Agent:
                     description=self.description,
                     user_task=self.user_task,
                     tools="No Provided Tools",
-                )
+                ),
+                # Preserve the API key
+                api_key=os.environ.get("GOOGLE_API_KEY")
             )
         print(Fore.LIGHTCYAN_EX + "Status: Evaluating Task...\n")
         response = self.llm.run(task, save_messages=True)
@@ -140,7 +145,8 @@ class Single_Agent:
             print(response)
         yaml_blocks = re.findall(r"```yml(.*?)```", response, flags=re.DOTALL)
         if not yaml_blocks:
-            yaml_blocks = re.findall(r"```yaml(.*?)```", response, flags=re.DOTALL)
+            yaml_blocks = re.findall(
+                r"```yaml(.*?)```", response, flags=re.DOTALL)
         if not yaml_blocks:
             return response
         yaml_content = yaml_blocks[0].strip()
@@ -162,7 +168,8 @@ class Single_Agent:
                     print("QUESTION: " + params["question"])
                     self.unleash(input("You: "))
                 else:
-                    question = str(params) if params else "What would you like to say?"
+                    question = str(
+                        params) if params else "What would you like to say?"
                     print("QUESTION: " + question)
                     self.unleash(input("You: "))
             elif name == "pass_result":
@@ -171,12 +178,14 @@ class Single_Agent:
                 else:
                     print("RESULT: " + str(params))
                 while True:
-                    decision = input("Does this result meet your requirements? (y/n): ")
+                    decision = input(
+                        "Does this result meet your requirements? (y/n): ")
                     if decision.lower() == "y":
                         print("Result accepted. Ending process smoothly.")
                         if self.output_file:
                             with open(self.output_file, "w", encoding="utf-8") as file:
-                                file.write(str(params["result"]) or str(params))
+                                file.write(
+                                    str(params["result"]) or str(params))
                         sys.exit(0)
                     elif decision.lower() == "n":
                         tweaks = input("What tweaks would you like to make? ")
@@ -187,35 +196,45 @@ class Single_Agent:
             else:
                 # Execute the tool by first ensuring we have an instance.
                 for tool in self.rawtools:
-                    tool_instance = tool if not isinstance(tool, type) else tool()
+                    tool_instance = tool if not isinstance(
+                        tool, type) else tool()
                     if tool_instance.name.lower() == name.lower():
                         try:
                             if isinstance(params, dict):
                                 tool_response = tool_instance._run(**params)
                             else:
                                 tool_response = tool_instance._run()
-                            print(Fore.LIGHTCYAN_EX + "Status: Executing Tool...\n")
+                            print(Fore.LIGHTCYAN_EX +
+                                  "Status: Executing Tool...\n")
                             print("Tool Response:")
                             print(tool_response)
-                            self.unleash("Here is your tool response:\n\n" + str(tool_response))
+                            self.unleash(
+                                "Here is your tool response:\n\n" + str(tool_response))
                             break
                         except TypeError as e:
-                            print(f"{Fore.RED}TypeError when executing tool '{name}': {e}")
+                            print(
+                                f"{Fore.RED}TypeError when executing tool '{name}': {e}")
                             # Check for errors related to missing self or duplicate parameters.
-                            if ("missing 1 required positional argument: 'self'" in str(e) or 
-                                "got multiple values for argument" in str(e)):
+                            if ("missing 1 required positional argument: 'self'" in str(e) or
+                                    "got multiple values for argument" in str(e)):
                                 try:
-                                    print(f"{Fore.LIGHTCYAN_EX}Status: Executing Tool (via unbound method)...\n")
+                                    print(
+                                        f"{Fore.LIGHTCYAN_EX}Status: Executing Tool (via unbound method)...\n")
                                     # Call the unbound _run method from the class so that self is not passed twice.
-                                    tool_response = tool_instance.__class__._run(**params)
+                                    tool_response = tool_instance.__class__._run(
+                                        **params)
                                     print("Tool Response:")
                                     print(tool_response)
-                                    self.unleash("Here is your tool response:\n\n" + str(tool_response))
+                                    self.unleash(
+                                        "Here is your tool response:\n\n" + str(tool_response))
                                     break
                                 except Exception as inner_e:
-                                    print(f"{Fore.RED}Failed to execute tool via unbound method: {inner_e}")
+                                    print(
+                                        f"{Fore.RED}Failed to execute tool via unbound method: {inner_e}")
                         except Exception as e:
-                            print(f"{Fore.RED}Error executing tool '{name}': {e}")
+                            print(
+                                f"{Fore.RED}Error executing tool '{name}': {e}")
         else:
-            print(Fore.RED + "YAML block found, but it doesn't match the expected format.")
+            print(
+                Fore.RED + "YAML block found, but it doesn't match the expected format.")
             return response
