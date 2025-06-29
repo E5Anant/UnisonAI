@@ -109,26 +109,32 @@ class Single_Agent:
         if self.tools:
             self.llm.__init__(
                 messages=self.messages,
+                model=self.llm.model,  # Preserve the model
+                temperature=self.llm.temperature,  # Preserve temperature
                 system_prompt=INDIVIDUAL_PROMPT.format(
                     identity=self.identity,
                     description=self.description,
                     user_task=self.user_task,
                     tools=self.tools,
                 ),
-                # Preserve the API key
-                api_key=os.environ.get("GOOGLE_API_KEY")
+                max_tokens=self.llm.max_tokens,  # Preserve max_tokens
+                verbose=self.llm.verbose,  # Preserve verbose
+                api_key=self.llm.client.api_key if hasattr(self.llm, 'client') and hasattr(self.llm.client, 'api_key') else None  # Preserve the API key
             )
         else:
             self.llm.__init__(
                 messages=self.messages,
+                model=self.llm.model,  # Preserve the model
+                temperature=self.llm.temperature,  # Preserve temperature
                 system_prompt=INDIVIDUAL_PROMPT.format(
                     identity=self.identity,
                     description=self.description,
                     user_task=self.user_task,
                     tools="No Provided Tools",
                 ),
-                # Preserve the API key
-                api_key=os.environ.get("GOOGLE_API_KEY")
+                max_tokens=self.llm.max_tokens,  # Preserve max_tokens
+                verbose=self.llm.verbose,  # Preserve verbose
+                api_key=self.llm.client.api_key if hasattr(self.llm, 'client') and hasattr(self.llm.client, 'api_key') else None  # Preserve the API key
             )
         print(Fore.LIGHTCYAN_EX + "Status: Evaluating Task...\n")
         response = self.llm.run(task, save_messages=True)

@@ -62,7 +62,7 @@ INDIVIDUAL_PROMPT="""
       [Detailed internal reasoning for choosing the tool]
     name: tool_name
     params: >
-      {"param1": "value1", ...}
+      {{"param1": "value1", ...}}
     ```
     - ALWAYS REPLY IN THIS YAML FORMAT.
     - ALWAYS USE ALL THE PARAMETERS WHICH ARE REQUIRED AND GIVEN.
