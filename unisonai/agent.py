@@ -2,6 +2,8 @@ import sys  # Added for exiting the process smoothly
 from unisonai.llms import Gemini
 from unisonai.prompts.agent import AGENT_PROMPT
 from unisonai.prompts.manager import MANAGER_PROMPT
+from unisonai.async_helper import run_async_from_sync, run_sync_in_executor
+import inspect
 import re
 import yaml
 import colorama
@@ -284,29 +286,55 @@ class Agent:
                         tool, type) else tool()
                     if tool_instance.name.lower() == name.lower():
                         try:
-                            if isinstance(params, dict):
-                                tool_response = tool_instance._run(**params)
-                            else:
-                                tool_response = tool_instance._run()
-                            print(Fore.LIGHTCYAN_EX +
-                                  "Status: Executing Tool...\n")
+                            # --- Primary execution path (bound method) ---
+                            bound_run_method = tool_instance._run
+                            is_async = inspect.iscoroutinefunction(bound_run_method)
+                            
+                            print(Fore.LIGHTCYAN_EX + f"Status: Executing Tool {'(Async)' if is_async else ''}...\n")
+                            
+                            if is_async:
+                                if isinstance(params, dict):
+                                    tool_response = run_async_from_sync(bound_run_method(**params))
+                                else:
+                                    tool_response = run_async_from_sync(bound_run_method(params))
+                            else: # Is a synchronous tool
+                                if isinstance(params, dict):
+                                    tool_response = bound_run_method(**params)
+                                else:
+                                    tool_response = bound_run_method(params)
+
                             print("Tool Response:")
                             print(tool_response)
                             self.unleash(
                                 "Here is your tool response:\n\n" + str(tool_response))
                             break
+                        
                         except TypeError as e:
-                            print(
-                                f"{Fore.RED}TypeError when executing tool '{name}': {e}")
-                            # Check for errors related to missing self or duplicate parameters.
                             if ("missing 1 required positional argument: 'self'" in str(e) or
-                                    "got multiple values for argument" in str(e)):
+                                    "got multiple values for argument" in str(e) or
+                                    "takes 0 positional arguments but 1 was given" in str(e)):
+                            # ---- END OF THE FIX ----
+                            
                                 try:
-                                    print(
-                                        f"{Fore.LIGHTCYAN_EX}Status: Executing Tool (via unbound method)...\n")
-                                    # Call the unbound _run method from the class so that self is not passed twice.
-                                    tool_response = tool_instance.__class__._run(
-                                        **params)
+                                    # --- Fallback execution path (unbound method) ---
+                                    unbound_run_method = tool_instance.__class__._run
+                                    is_async_unbound = inspect.iscoroutinefunction(unbound_run_method)
+
+                                    print(Fore.LIGHTCYAN_EX + f"Status: Executing Tool (via unbound method) {'(Async)' if is_async_unbound else '(Sync via Executor)'}...\n")
+
+                                    if is_async_unbound:
+                                        # Execute async unbound tool
+                                        if isinstance(params, dict):
+                                            tool_response = run_async_from_sync(unbound_run_method(**params))
+                                        else:
+                                            tool_response = run_async_from_sync(unbound_run_method(params))
+                                    else: 
+                                        # Execute sync unbound tool in thread pool
+                                        if isinstance(params, dict):
+                                            tool_response = run_sync_in_executor(unbound_run_method, **params)
+                                        else:
+                                            tool_response = run_sync_in_executor(unbound_run_method, params)
+                                    
                                     print("Tool Response:")
                                     print(tool_response)
                                     self.unleash(
@@ -315,6 +343,10 @@ class Agent:
                                 except Exception as inner_e:
                                     print(
                                         f"{Fore.RED}Failed to execute tool via unbound method: {inner_e}")
+                            else:
+                                # It's a different TypeError, so report it as a primary error
+                                print(f"{Fore.RED}Error executing tool '{name}': {e}")
+
                         except Exception as e:
                             print(
                                 f"{Fore.RED}Error executing tool '{name}': {e}")
