@@ -29,7 +29,7 @@ from unisonai import Agent
 from unisonai.llms import Gemini
 
 agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Math Helper",
     description="Calculator assistant",
     tools=[calculator()],   # Note: call it to get an instance
@@ -50,7 +50,7 @@ def uppercase(text: str) -> str:
     return text.upper()
 
 agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Text Helper",
     description="Text processing assistant",
     tools=[word_count(), uppercase()],
