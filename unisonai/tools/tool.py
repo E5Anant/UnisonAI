@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Callable, Type
 from unisonai.tools.types import ToolParameterType
 import json
 import logging
-
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -203,3 +203,133 @@ class BaseTool(ABC):
     def __repr__(self) -> str:
         """Detailed string representation."""
         return f"BaseTool(name='{self.name}', params={len(self.params)})"
+    
+def tool(name: str, description: str):
+    """
+    Decorator to convert a function into a BaseTool.
+    
+    The function's type hints are used to generate the tool's parameters.
+    Supported types map to ToolParameterType:
+    - str -> STRING
+    - int -> INTEGER
+    - float -> FLOAT
+    - bool -> BOOLEAN
+    - list -> LIST
+    - dict -> DICT
+    - Any -> ANY
+    
+    Args:
+        name: The name of the tool
+        description: A brief description of what the tool does
+    """
+    def decorator(func: Callable) -> Type[BaseTool]:
+        # Map python types to ToolParameterType
+        type_mapping = {
+            str: ToolParameterType.STRING,
+            int: ToolParameterType.INTEGER,
+            float: ToolParameterType.FLOAT,
+            bool: ToolParameterType.BOOLEAN,
+            list: ToolParameterType.LIST,
+            dict: ToolParameterType.DICT,
+            Any: ToolParameterType.ANY
+        }
+        
+        # Inspect function signature
+        sig = inspect.signature(func)
+        fields = []
+        
+        for param_name, param in sig.parameters.items():
+            if param_name == 'self':
+                continue
+                
+            # Determine field type
+            annotation = param.annotation
+            field_type = type_mapping.get(annotation, ToolParameterType.STRING)
+            if annotation == inspect.Parameter.empty:
+                field_type = ToolParameterType.STRING
+                
+            # Determine required/default
+            default_value = None
+            required = True
+            if param.default != inspect.Parameter.empty:
+                default_value = param.default
+                required = False
+                
+            fields.append(Field(
+                name=param_name,
+                description=f"Parameter {param_name}",  # Basic description
+                field_type=field_type,
+                default_value=default_value,
+                required=required
+            ))
+
+        # Create a dynamic class that inherits from BaseTool
+        class DynamicTool(BaseTool):
+            def __init__(self):
+                self.name = name
+                self.description = description
+                self.params = fields
+                super().__init__()
+            
+            def _run(self, **kwargs) -> Any:
+                return func(**kwargs)
+        
+        # Return the class, not an instance (Agent instantiates it)
+        return DynamicTool
+        
+    return decorator
+
+if __name__ == "__main__":
+    print("=== Testing BaseTool Implementation ===")
+    
+    # Example 1: Using Class Inheritance
+    class CalculatorTool(BaseTool):
+        def __init__(self):
+            self.name = "calculator"
+            self.description = "Performs basic arithmetic operations"
+            self.params = [
+                Field(name="operation", description="Operation (add, subtract)", field_type=ToolParameterType.STRING),
+                Field(name="a", description="First number", field_type=ToolParameterType.FLOAT),
+                Field(name="b", description="Second number", field_type=ToolParameterType.FLOAT)
+            ]
+            super().__init__()
+            
+        def _run(self, operation: str, a: float, b: float) -> str:
+            if operation == "add":
+                return str(a + b)
+            elif operation == "subtract":
+                return str(a - b)
+            return "Invalid operation"
+
+    calc = CalculatorTool()
+    print("\n[Class Implementation Test]")
+    print(f"Tool Name: {calc.name}")
+    print(f"Params: {[p.name for p in calc.params]}")
+    result = calc.run(operation="add", a=5.0, b=3.0)
+    print(f"Result: {result.result}")
+    
+    # Example 2: Using Decorator
+    print("\n=== Testing Decorator Implementation ===")
+    
+    @tool(
+        name="word_counter",
+        description="Counts the number of words in a text"
+    )
+    def count_words(text: str, case_sensitive: bool = False) -> int:
+        if not case_sensitive:
+            text = text.lower()
+        return len(text.split())
+    
+    # Decorator returns a class, so we instantiate it
+    counter_tool = count_words()
+    print("\n[Decorator Implementation Test]")
+    print(f"Tool Name: {counter_tool.name}")
+    print(f"Generated Params: {[p.name for p in counter_tool.params]}")
+    
+    # Test execution
+    res = counter_tool.run(text="Hello world from UnisonAI", case_sensitive=True)
+    print(f"Result: {res.result}")
+    
+    # Verify parameter validation
+    fail_res = counter_tool.run(text=123) # Invalid type
+    print(f"Validation Failure: {fail_res.error_message}")
