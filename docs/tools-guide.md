@@ -1,753 +1,187 @@
 # Tool System Guide
 
-## Overview
+UnisonAI provides two ways to create tools: the `@tool` decorator (recommended) and the `BaseTool` class.
 
-UnisonAI's tool system provides a robust framework for extending agent capabilities with custom, type-safe, and validated tools. The system supports strong typing, automatic parameter validation, standardized results, and comprehensive error handling.
+---
 
-## Core Components
+## Method 1: `@tool` Decorator
 
-### BaseTool Class
+Best for simple, stateless functions. Parameters are inferred from type hints.
 
-The foundation for all custom tools in UnisonAI.
+```python
+from unisonai.tools.tool import tool
 
-#### Structure
+@tool(name="calculator", description="Arithmetic on two numbers")
+def calculator(operation: str, a: float, b: float) -> str:
+    ops = {
+        "add": a + b,
+        "subtract": a - b,
+        "multiply": a * b,
+        "divide": a / b if b != 0 else "Error: division by zero",
+    }
+    return str(ops.get(operation, f"Unknown: {operation}"))
+```
+
+### Usage with Agent
+
+```python
+from unisonai import Agent
+from unisonai.llms import Gemini
+
+agent = Agent(
+    llm=Gemini(model="gemini-2.0-flash"),
+    identity="Math Helper",
+    description="Calculator assistant",
+    tools=[calculator()],   # Note: call it to get an instance
+)
+
+agent.unleash(task="What is 25 * 48?")
+```
+
+### Multiple Decorator Tools
+
+```python
+@tool(name="word_count", description="Count words in text")
+def word_count(text: str) -> str:
+    return str(len(text.split()))
+
+@tool(name="uppercase", description="Convert text to uppercase")
+def uppercase(text: str) -> str:
+    return text.upper()
+
+agent = Agent(
+    llm=Gemini(model="gemini-2.0-flash"),
+    identity="Text Helper",
+    description="Text processing assistant",
+    tools=[word_count(), uppercase()],
+)
+```
+
+---
+
+## Method 2: `BaseTool` Class
+
+Best for tools with state, complex logic, or multiple parameters with validation.
 
 ```python
 from unisonai.tools.tool import BaseTool, Field
 from unisonai.tools.types import ToolParameterType
 
-class MyTool(BaseTool):
+class UnitConverter(BaseTool):
     def __init__(self):
-        self.name = "my_tool"
-        self.description = "Description of what my tool does"
+        self.name = "unit_converter"
+        self.description = "Convert between measurement units"
         self.params = [
-            Field(
-                name="parameter_name",
-                description="Description of the parameter",
-                field_type=ToolParameterType.STRING,
-                default_value="default",
-                required=True
-            )
+            Field(name="value", description="Number to convert",
+                  field_type=ToolParameterType.FLOAT, required=True),
+            Field(name="from_unit", description="Source unit",
+                  field_type=ToolParameterType.STRING, required=True),
+            Field(name="to_unit", description="Target unit",
+                  field_type=ToolParameterType.STRING, required=True),
         ]
         super().__init__()
 
-    def _run(self, **kwargs) -> Any:
-        # Tool implementation
-        return "result"
+    def _run(self, value: float, from_unit: str, to_unit: str) -> str:
+        conversions = {
+            ("km", "miles"): lambda v: v * 0.621371,
+            ("miles", "km"): lambda v: v * 1.60934,
+            ("C", "F"): lambda v: v * 9/5 + 32,
+        }
+        fn = conversions.get((from_unit, to_unit))
+        if fn is None:
+            return f"Unsupported: {from_unit} -> {to_unit}"
+        return f"{value} {from_unit} = {round(fn(value), 2)} {to_unit}"
 ```
 
-### Field Definition
+### Stateful Tools
 
-Defines tool parameters with type validation.
-
-#### Parameters
-
-| Parameter | Type | Description | Required |
-|-----------|------|-------------|----------|
-| `name` | str | Parameter identifier | Yes |
-| `description` | str | Parameter purpose description | Yes |
-| `field_type` | ToolParameterType | Parameter data type | No (defaults to STRING) |
-| `default_value` | Any | Default value if not provided | No |
-| `required` | bool | Whether parameter is mandatory | No (defaults to True) |
-
-### ToolParameterType Enum
-
-Supported parameter types for validation:
-
-- **`STRING`**: Text/string values
-- **`INTEGER`**: Whole number values
-- **`FLOAT`**: Decimal number values
-- **`BOOLEAN`**: True/false values
-- **`LIST`**: Array/list values
-- **`DICT`**: Dictionary/object values
-- **`ANY`**: Any type (fallback)
-
-### ToolResult Class
-
-Standardized tool execution result.
-
-#### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `success` | bool | Whether execution succeeded |
-| `result` | Any | Execution result (None if failed) |
-| `error_message` | str | Error description if failed |
-| `metadata` | dict | Additional execution information |
-
-## Creating Custom Tools
-
-### Step 1: Define Tool Structure
+Class-based tools can maintain state across calls:
 
 ```python
-class CalculatorTool(BaseTool):
+class ExpenseTracker(BaseTool):
     def __init__(self):
-        self.name = "calculator"
-        self.description = "Perform mathematical calculations"
+        self.name = "expense_tracker"
+        self.description = "Track expenses"
         self.params = [
-            Field(
-                name="operation",
-                description="Mathematical operation (+, -, *, /)",
-                field_type=ToolParameterType.STRING,
-                required=True
-            ),
-            Field(
-                name="x",
-                description="First number",
-                field_type=ToolParameterType.FLOAT,
-                required=True
-            ),
-            Field(
-                name="y",
-                description="Second number",
-                field_type=ToolParameterType.FLOAT,
-                required=True
-            )
+            Field(name="action", description="'add' or 'summary'",
+                  field_type=ToolParameterType.STRING, required=True),
+            Field(name="amount", description="Expense amount",
+                  field_type=ToolParameterType.FLOAT, required=False, default_value=0.0),
+            Field(name="category", description="Expense category",
+                  field_type=ToolParameterType.STRING, required=False, default_value="general"),
         ]
-        super().__init__()
-```
-
-### Step 2: Implement Tool Logic
-
-```python
-def _run(self, operation: str, x: float, y: float) -> float:
-    """Execute mathematical operation with validation."""
-
-    if operation == "+":
-        return x + y
-    elif operation == "-":
-        return x - y
-    elif operation == "*":
-        return x * y
-    elif operation == "/":
-        if y == 0:
-            raise ValueError("Division by zero")
-        return x / y
-    else:
-        raise ValueError(f"Unsupported operation: {operation}")
-```
-
-### Step 3: Use the Tool
-
-```python
-# Create tool instance
-calc_tool = CalculatorTool()
-
-# Execute with validation
-result = calc_tool.run(operation="+", x=10, y=5)
-
-if result.success:
-    print(f"Result: {result.result}")
-else:
-    print(f"Error: {result.error_message}")
-```
-
-## Advanced Tool Features
-
-### Optional Parameters
-
-```python
-class WeatherTool(BaseTool):
-    def __init__(self):
-        self.name = "weather"
-        self.description = "Get weather information"
-        self.params = [
-            Field(
-                name="city",
-                description="City name",
-                field_type=ToolParameterType.STRING,
-                required=True
-            ),
-            Field(
-                name="include_forecast",
-                description="Include 5-day forecast",
-                field_type=ToolParameterType.BOOLEAN,
-                default_value=False,
-                required=False
-            )
-        ]
+        self._expenses = []
         super().__init__()
 
-    def _run(self, city: str, include_forecast: bool = False) -> str:
-        # Tool implementation
-        return f"Weather for {city}"
+    def _run(self, action: str, amount: float = 0.0, category: str = "general") -> str:
+        if action == "add":
+            self._expenses.append({"amount": amount, "category": category})
+            return f"Added ${amount:.2f} to {category}"
+        elif action == "summary":
+            total = sum(e["amount"] for e in self._expenses)
+            return f"Total: ${total:.2f} across {len(self._expenses)} items"
+        return f"Unknown action: {action}"
 ```
 
-### List Parameters
+---
+
+## Parameter Types
+
+| Type | ToolParameterType | Python Type |
+|------|-------------------|-------------|
+| String | `STRING` | `str` |
+| Integer | `INTEGER` | `int` |
+| Float | `FLOAT` | `float` |
+| Boolean | `BOOLEAN` | `bool` |
+| List | `LIST` | `list` |
+| Dictionary | `DICT` | `dict` |
+| Any | `ANY` | any |
+
+---
+
+## Field Definition
 
 ```python
-class BatchProcessorTool(BaseTool):
-    def __init__(self):
-        self.name = "batch_processor"
-        self.description = "Process multiple items"
-        self.params = [
-            Field(
-                name="items",
-                description="List of items to process",
-                field_type=ToolParameterType.LIST,
-                required=True
-            ),
-            Field(
-                name="operation",
-                description="Operation to perform on each item",
-                field_type=ToolParameterType.STRING,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    def _run(self, items: list, operation: str) -> list:
-        results = []
-        for item in items:
-            # Process each item
-            results.append(f"{operation}: {item}")
-        return results
-```
-
-### Dictionary Parameters
-
-```python
-class DatabaseQueryTool(BaseTool):
-    def __init__(self):
-        self.name = "database_query"
-        self.description = "Query database with filters"
-        self.params = [
-            Field(
-                name="table",
-                description="Table name",
-                field_type=ToolParameterType.STRING,
-                required=True
-            ),
-            Field(
-                name="filters",
-                description="Query filters",
-                field_type=ToolParameterType.DICT,
-                required=False
-            )
-        ]
-        super().__init__()
-
-    def _run(self, table: str, filters: dict = None) -> str:
-        if filters is None:
-            filters = {}
-        return f"Querying {table} with filters: {filters}"
-```
-
-## Tool Validation System
-
-### Automatic Validation
-
-Tools automatically validate parameters before execution:
-
-```python
-# This will fail validation
-result = tool.run(invalid_param="value")  # Missing required parameter
-
-# This will succeed
-result = tool.run(required_param="value")
-```
-
-### Custom Validation
-
-```python
-class AdvancedTool(BaseTool):
-    def __init__(self):
-        self.name = "advanced_tool"
-        self.description = "Tool with custom validation"
-        self.params = [
-            Field(
-                name="email",
-                description="Email address",
-                field_type=ToolParameterType.STRING,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    def _run(self, email: str) -> str:
-        # Custom validation logic
-        if "@" not in email:
-            raise ValueError("Invalid email format")
-        return f"Processing: {email}"
-```
-
-## Error Handling
-
-### ToolResult Error Information
-
-```python
-result = tool.run(invalid_param="value")
-
-if not result.success:
-    print(f"Error: {result.error_message}")
-    print(f"Metadata: {result.metadata}")  # Additional error context
-```
-
-### Exception Handling in Tools
-
-```python
-def _run(self, **kwargs) -> Any:
-    try:
-        # Tool logic here
-        return result
-    except ValueError as e:
-        # Return error message instead of raising
-        return f"Validation error: {str(e)}"
-    except Exception as e:
-        # Handle unexpected errors
-        return f"Unexpected error: {str(e)}"
-```
-
-## Built-in Tools
-
-### MemoryTool
-
-Conversation memory management.
-
-```python
-from unisonai.tools.memory import MemoryTool
-
-memory_tool = MemoryTool()
-result = memory_tool.run(
-    action="add",
-    content="Important information to remember",
-    metadata={"category": "research"}
+Field(
+    name="param_name",           # Parameter name
+    description="What it does",  # Description for the LLM
+    field_type=ToolParameterType.STRING,  # Type
+    required=True,               # Required or optional
+    default_value=None,          # Default if optional
 )
 ```
 
-**Parameters:**
-- `action` (str): "add", "get", "search", "clear"
-- `content` (str): Content for add action
-- `metadata` (dict): Additional metadata
+---
 
-### RAGTool
+## ToolResult
 
-Retrieval-Augmented Generation for document search.
+All tool `run()` calls return a `ToolResult`:
 
 ```python
-from unisonai.tools.rag import RAGTool
+result = my_tool.run(param="value")
 
-rag_tool = RAGTool(documents=["doc1.txt", "doc2.txt"])
-result = rag_tool.run(
-    query="Find information about X",
-    top_k=3
-)
+result.success        # bool — did it succeed?
+result.result         # Any — the return value
+result.error_message  # str — error message if failed
+result.metadata       # dict — execution metadata
 ```
 
-**Parameters:**
-- `query` (str): Search query
-- `top_k` (int): Number of top results to return
+---
 
-## Tool Integration Patterns
+## How Tools Work with Agents
 
-### Single Agent with Multiple Tools
+1. The agent's system prompt includes tool signatures (generated automatically).
+2. The LLM wraps tool calls in `<tool>...</tool>` XML tags.
+3. The agent parses the call safely using `ast.parse()` — no `eval()`.
+4. Tool results are fed back to the LLM for the next reasoning step.
+5. The loop continues until the LLM gives a final answer or reaches max turns.
 
-```python
-from unisonai import Agent
-from unisonai.tools.memory import MemoryTool
-from unisonai.tools.rag import RAGTool
+---
 
-agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
-    identity="Multi-Tool Assistant",
-    description="Assistant with memory, document search, and calculation capabilities",
-    tools=[MemoryTool, RAGTool, CalculatorTool],
-    verbose=True
-)
+## Tips
 
-agent.unleash(task="""
-    Store important project information in memory,
-    search for relevant documents in the knowledge base,
-    and calculate project budget estimates.
-""")
-```
-
-### Clan with Specialized Tools
-
-```python
-# Research agent with RAG
-research_agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
-    identity="Researcher",
-    description="Document research specialist",
-    task="Gather information from knowledge base",
-    tools=[RAGTool],
-    verbose=True
-)
-
-# Analysis agent with calculation tools
-analysis_agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
-    identity="Analyst",
-    description="Data analysis and calculation expert",
-    task="Analyze data and perform calculations",
-    tools=[CalculatorTool, DataAnalysisTool],
-    verbose=True
-)
-```
-
-## Tool Development Best Practices
-
-### 1. Design Principles
-
-- **Single Responsibility**: Each tool should do one thing well
-- **Clear Interface**: Intuitive parameter names and descriptions
-- **Error Handling**: Comprehensive error handling and user feedback
-- **Performance**: Efficient execution, especially for frequent use
-
-### 2. Parameter Design
-
-- **Required vs Optional**: Only mark parameters as required when truly necessary
-- **Default Values**: Provide sensible defaults for optional parameters
-- **Type Safety**: Use appropriate ToolParameterType values
-- **Validation**: Implement custom validation for complex requirements
-
-### 3. Implementation Guidelines
-
-- **Idempotent Operations**: Tools should produce consistent results for same inputs
-- **Stateless**: Avoid maintaining state between executions when possible
-- **Resource Management**: Properly manage external resources and connections
-- **Logging**: Provide meaningful execution information
-
-### 4. Testing Considerations
-
-- **Unit Tests**: Test tool logic independently
-- **Integration Tests**: Test tool integration with agents
-- **Error Scenarios**: Test error handling and edge cases
-- **Performance Tests**: Verify execution time and resource usage
-
-## Advanced Tool Patterns
-
-### Async Tools
-
-```python
-import asyncio
-from typing import Awaitable
-
-class AsyncTool(BaseTool):
-    def __init__(self):
-        self.name = "async_tool"
-        self.description = "Asynchronous operation tool"
-        self.params = [
-            Field(
-                name="delay",
-                description="Delay in seconds",
-                field_type=ToolParameterType.INTEGER,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    async def _run_async(self, delay: int) -> str:
-        """Async implementation of tool logic."""
-        await asyncio.sleep(delay)
-        return f"Completed after {delay} seconds"
-
-    def _run(self, delay: int) -> Awaitable[str]:
-        """Sync wrapper for async tool."""
-        return self._run_async(delay)
-```
-
-### Tool Composition
-
-```python
-class CompositeTool(BaseTool):
-    def __init__(self):
-        self.name = "composite_tool"
-        self.description = "Tool that uses other tools"
-        self.params = [
-            Field(
-                name="operation",
-                description="Operation to perform",
-                field_type=ToolParameterType.STRING,
-                required=True
-            )
-        ]
-
-        # Initialize sub-tools
-        self.calculator = CalculatorTool()
-        self.memory_tool = MemoryTool()
-
-        super().__init__()
-
-    def _run(self, operation: str) -> str:
-        if operation == "calculate_and_store":
-            # Use calculator tool
-            calc_result = self.calculator.run(operation="+", x=10, y=5)
-
-            # Store in memory
-            memory_result = self.memory_tool.run(
-                action="store", 
-                key="calculation", 
-                value=str(calc_result.result)
-            )
-
-            return f"Calculated: {calc_result.result}, Stored: {memory_result.result}"
-
-        return "Unknown operation"
-```
-
-### Tool with External APIs
-
-```python
-import requests
-
-class APITool(BaseTool):
-    def __init__(self):
-        self.name = "api_tool"
-        self.description = "Interact with external APIs"
-        self.params = [
-            Field(
-                name="endpoint",
-                description="API endpoint",
-                field_type=ToolParameterType.STRING,
-                required=True
-            ),
-            Field(
-                name="method",
-                description="HTTP method",
-                field_type=ToolParameterType.STRING,
-                default_value="GET",
-                required=False
-            )
-        ]
-        super().__init__()
-
-    def _run(self, endpoint: str, method: str = "GET") -> dict:
-        try:
-            if method.upper() == "GET":
-                response = requests.get(endpoint)
-            elif method.upper() == "POST":
-                response = requests.post(endpoint)
-            else:
-                raise ValueError(f"Unsupported method: {method}")
-
-            response.raise_for_status()
-            return response.json()
-
-        except requests.RequestException as e:
-            raise ValueError(f"API request failed: {str(e)}")
-```
-
-## Tool Registry and Discovery
-
-### Manual Tool Registration
-
-```python
-# Create tools
-tools = [MemoryTool, RAGTool, CustomTool]
-
-# Configure tools list
-tools = [MemoryTool, RAGTool, CalculatorTool]
-
-# Use with agent
-agent = Agent(
-    llm=your_llm,
-    identity="Tool-Rich Agent",
-    description="Agent with multiple tool capabilities",
-    tools=tools
-)
-```
-
-### Dynamic Tool Loading
-
-```python
-import importlib
-import inspect
-
-def load_tools_from_module(module_name: str) -> list:
-    """Dynamically load tools from a module."""
-    module = importlib.import_module(module_name)
-    tools = []
-
-    for name, obj in inspect.getmembers(module):
-        if (inspect.isclass(obj) and
-            issubclass(obj, BaseTool) and
-            obj != BaseTool):
-            tools.append(obj)
-
-    return tools
-
-# Load tools dynamically
-custom_tools = load_tools_from_module("my_tools")
-```
-
-## Performance Optimization
-
-### Tool Caching
-
-```python
-from functools import lru_cache
-
-class CachedTool(BaseTool):
-    def __init__(self):
-        self.name = "cached_tool"
-        self.description = "Tool with result caching"
-        self.params = [
-            Field(
-                name="input_data",
-                description="Input for computation",
-                field_type=ToolParameterType.STRING,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    @lru_cache(maxsize=100)
-    def _expensive_computation(self, data: str) -> str:
-        # Expensive operation here
-        return f"Processed: {data}"
-
-    def _run(self, input_data: str) -> str:
-        return self._expensive_computation(input_data)
-```
-
-### Batch Processing
-
-```python
-class BatchTool(BaseTool):
-    def __init__(self):
-        self.name = "batch_processor"
-        self.description = "Process multiple items efficiently"
-        self.params = [
-            Field(
-                name="items",
-                description="List of items to process",
-                field_type=ToolParameterType.LIST,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    def _run(self, items: list) -> list:
-        # Process items in batches for efficiency
-        batch_size = 10
-        results = []
-
-        for i in range(0, len(items), batch_size):
-            batch = items[i:i + batch_size]
-            batch_results = self._process_batch(batch)
-            results.extend(batch_results)
-
-        return results
-
-    def _process_batch(self, batch: list) -> list:
-        # Process a batch of items
-        return [f"processed_{item}" for item in batch]
-```
-
-## Debugging and Monitoring
-
-### Tool Debugging
-
-```python
-class DebugTool(BaseTool):
-    def __init__(self):
-        self.name = "debug_tool"
-        self.description = "Tool with detailed logging"
-        self.params = [
-            Field(
-                name="data",
-                description="Data to process",
-                field_type=ToolParameterType.ANY,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    def _run(self, data) -> str:
-        import logging
-
-        # Log execution details
-        logging.info(f"Processing data: {data}")
-
-        try:
-            result = self._process_data(data)
-            logging.info(f"Success: {result}")
-            return result
-        except Exception as e:
-            logging.error(f"Error: {str(e)}")
-            raise
-
-    def _process_data(self, data):
-        # Tool logic with error handling
-        return f"Debug processed: {data}"
-```
-
-### Performance Monitoring
-
-```python
-import time
-
-class MonitoredTool(BaseTool):
-    def __init__(self):
-        self.name = "monitored_tool"
-        self.description = "Tool with performance monitoring"
-        self.params = [
-            Field(
-                name="operation",
-                description="Operation to perform",
-                field_type=ToolParameterType.STRING,
-                required=True
-            )
-        ]
-        super().__init__()
-
-    def _run(self, operation: str) -> dict:
-        start_time = time.time()
-
-        try:
-            result = self._perform_operation(operation)
-
-            execution_time = time.time() - start_time
-
-            return {
-                "result": result,
-                "execution_time": execution_time,
-                "success": True
-            }
-
-        except Exception as e:
-            execution_time = time.time() - start_time
-
-            return {
-                "error": str(e),
-                "execution_time": execution_time,
-                "success": False
-            }
-```
-
-## Tool Examples
-
-See the `examples/` folder for complete tool implementations:
-
-- **[basic_tools.py](./examples/basic_tools.py)**: Simple tool examples
-- **[advanced_tools.py](./examples/advanced_tools.py)**: Complex tool patterns
-- **[api_tools.py](./examples/api_tools.py)**: External API integration
-- **[async_tools.py](./examples/async_tools.py)**: Asynchronous tool examples
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Parameter Validation Errors**
-   - Check parameter types match Field definitions
-   - Verify required parameters are provided
-   - Ensure default values are appropriate
-
-2. **Tool Execution Failures**
-   - Implement proper error handling in `_run` methods
-   - Check for external dependencies and permissions
-   - Verify tool logic handles edge cases
-
-3. **Performance Issues**
-   - Monitor tool execution time
-   - Implement caching for expensive operations
-   - Consider batch processing for multiple items
-
-4. **Integration Problems**
-   - Ensure tools are properly instantiated
-   - Check tool registration with agents
-   - Verify tool schemas are correctly formatted
-
-For more help, see the [Usage Guidelines](./usage-guide.md) and [API Reference](./api-reference.md).
+- **Always instantiate tools** — pass `calculator()` not `calculator` to the tools list.
+- **Return strings** from `_run()` when possible — LLMs handle text best.
+- **Use `@tool` for 90% of cases** — it's simpler and less boilerplate.
+- **Use `BaseTool` when you need state** (e.g., tracking data across calls).
+- **Keep tool names short and descriptive** — the LLM uses them to decide which tool to call.
