@@ -4,7 +4,7 @@
 
 - Python 3.10–3.12
 - API key for your LLM provider
-- `pip install unisonai`
+- `pip install unisonai-sdk`
 
 ---
 
@@ -36,7 +36,7 @@ from unisonai import Agent
 from unisonai.llms import Gemini
 
 agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Assistant",
     description="A helpful AI assistant",
 )
@@ -120,7 +120,7 @@ clan.unleash()
 1. **Planning** — the manager LLM generates a step-by-step plan
 2. **Distribution** — the plan is shared with all agents
 3. **Execution** — the manager delegates via `send_message(agent_name, message)`
-4. **Completion** — the manager calls `pass_result(result)` to deliver the final output
+4. **Completion** — the manager replies directly with the final output
 
 ### Built-in Clan Functions
 
@@ -129,7 +129,6 @@ These are automatically available to agents inside a Clan:
 | Function | Description |
 |----------|-------------|
 | `send_message(agent_name, message)` | Send a task to another agent |
-| `pass_result(result)` | Deliver the final result to the user |
 | `ask_user(question)` | Ask the user a clarifying question (manager only) |
 
 ---
