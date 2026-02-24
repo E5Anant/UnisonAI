@@ -5,7 +5,7 @@ Get running with UnisonAI in under 5 minutes.
 ## Installation
 
 ```bash
-pip install unisonai
+pip install unisonai-sdk
 ```
 
 Set your API key:
@@ -25,7 +25,7 @@ from unisonai import Agent
 from unisonai.llms import Gemini
 
 agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Assistant",
     description="A helpful AI assistant",
 )
@@ -51,7 +51,7 @@ def calculator(operation: str, a: float, b: float) -> str:
     return str(ops.get(operation, "unknown"))
 
 agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Math Helper",
     description="An assistant with a calculator",
     tools=[calculator()],
@@ -72,14 +72,14 @@ from unisonai import Agent, Clan
 from unisonai.llms import Gemini
 
 researcher = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Researcher",
     description="Gathers information",
     task="Research assigned topics",
 )
 
 writer = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Writer",
     description="Writes reports from research",
     task="Write a polished report",
@@ -104,7 +104,7 @@ clan.unleash()
 1. **Clan planning** — the manager LLM creates a step-by-step plan.
 2. **Task distribution** — the plan is shared with all agents.
 3. **Execution** — the manager delegates tasks via `send_message()`.
-4. **Final delivery** — the manager calls `pass_result()` to return the output.
+4. **Final delivery** — the manager replies directly with the final output.
 
 ---
 
