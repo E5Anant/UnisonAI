@@ -10,6 +10,7 @@ class XAILLM:
     USER = "user"
     MODEL = "assistant"
     SYSTEM = "system"
+    TOOL = "tool"
     def __init__(
             self,
             messages: list[dict[str, str]] = [],
@@ -30,13 +31,26 @@ class XAILLM:
         if self.system_prompt is not None:
             self.add_message(self.SYSTEM, self.system_prompt)
 
-    def run(self, prompt: str, save_messages:bool = True) -> str:
+    def _get_api_messages(self):
+        """Return messages with 'tool' role mapped to 'user' for API compatibility."""
+        api_msgs = []
+        for msg in self.messages:
+            if msg.get("role") == "tool":
+                mapped = dict(msg)
+                mapped["role"] = self.USER
+                api_msgs.append(mapped)
+            else:
+                api_msgs.append(msg)
+        return api_msgs
+
+    def run(self, prompt: str, save_messages:bool = True, input_role: str = None) -> str:
+        role = input_role if input_role else self.USER
         if save_messages:
-            self.add_message(self.USER, prompt)
+            self.add_message(role, prompt)
         response_content = ""
         self.stream = self.client.chat.completions.create(
             model=self.model,
-            messages=self.messages,
+            messages=self._get_api_messages(),
             stream=False,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
