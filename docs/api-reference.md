@@ -1,273 +1,178 @@
 # API Reference
 
-## Core Classes
+## Agent
 
-### Agent
+### Constructor
 
-Unified agent class for both standalone tasks and clan membership.
+```python
+Agent(
+    llm: BaseLLM,          # LLM provider instance (required)
+    identity: str,          # Agent name (required)
+    description: str,       # Agent purpose (required)
+    task: str = "",         # Default task (used in clan mode)
+    verbose: bool = True,   # Print thinking/tool/response output
+    tools: list = [],       # List of tool instances
+    output_file: str = None,      # Save final result to file
+    history_folder: str = ".",    # Conversation history directory
+)
+```
 
-#### Constructor Parameters
+### Methods
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `llm` | BaseLLM | LLM provider instance | **Required** |
-| `identity` | str | Agent's unique identifier | **Required** |
-| `description` | str | Agent's purpose and capabilities | **Required** |
-| `task` | str | Agent's core objective (optional for standalone) | `""` |
-| `verbose` | bool | Enable verbose logging | `True` |
-| `tools` | list | List of tool classes or instances | `[]` |
-| `output_file` | str | Path for output file | `None` |
-| `history_folder` | str | Directory for conversation history | `None` |
+#### `unleash(task: str) -> str`
 
-#### Methods
+Execute a task. Returns the final answer as a string.
 
-##### `unleash(task: str)`
-
-Execute a task using the agent.
-
-**Parameters:**
-- `task` (str): The task description to execute
-
-**Behavior:**
-- In standalone mode: Loads history, executes task independently
-- In clan mode: Coordinates with other clan members via inter-agent messaging
-- Configures LLM with appropriate system prompt based on context
-- Saves conversation history
-
-##### `send_message(agent_name: str, message: str, additional_resource: str = None, sender: str = None)`
-
-Send a message to another agent in the clan.
-
-**Parameters:**
-- `agent_name` (str): Name of the target agent
-- `message` (str): Message content
-- `additional_resource` (str, optional): Additional context or resources
-- `sender` (str, optional): Name of the sending agent
+```python
+result = agent.unleash(task="Explain quantum computing")
+```
 
 ---
 
-### Clan
+## Clan
 
-Multi-agent orchestration and coordination system.
+### Constructor
 
-#### Constructor Parameters
+```python
+Clan(
+    clan_name: str,              # Team name (required)
+    manager: Agent,              # Coordinating agent (required)
+    members: list[Agent],        # All agents including manager (required)
+    shared_instruction: str,     # Instructions for all agents (required)
+    goal: str,                   # The task to accomplish (required)
+    history_folder: str = "history",  # History directory
+    output_file: str = None,          # Save final result to file
+)
+```
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `clan_name` | str | Name identifier for the clan | **Required** |
-| `manager` | Agent | Lead agent coordinating the clan | **Required** |
-| `members` | list | List of Agent instances | **Required** |
-| `shared_instruction` | str | Common instructions for all agents | **Required** |
-| `goal` | str | Unified clan objective | **Required** |
-| `history_folder` | str | Directory for clan history | `"history"` |
-| `output_file` | str | Path for final output | `None` |
+### Methods
 
-#### Methods
+#### `unleash()`
 
-##### `unleash()`
+Plan the work and hand execution to the manager.
 
-Execute the coordinated clan task.
+```python
+clan.unleash()
+```
 
-**Behavior:**
-- Manager agent plans and delegates tasks
-- Member agents collaborate and contribute
-- Produces unified output based on shared goal
+### Built-in Functions (available inside clans)
+
+| Function | Available To | Description |
+|----------|-------------|-------------|
+| `send_message(agent_name, message)` | All agents | Send a task to another agent |
+| `pass_result(result)` | All agents | Deliver final output |
+| `ask_user(question)` | Manager only | Ask user a clarifying question |
 
 ---
 
 ## Tool System
 
-### BaseTool
+### `@tool` Decorator
 
-Abstract base class for creating custom tools.
+```python
+from unisonai.tools.tool import tool
 
-#### Properties
+@tool(name="my_tool", description="What it does")
+def my_tool(param: str) -> str:
+    return f"Result: {param}"
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `name` | str | Tool identifier (auto-generated from class name) |
-| `description` | str | Tool functionality description |
-| `params` | list | List of Field objects defining parameters |
+# Instantiate for use with Agent
+agent = Agent(..., tools=[my_tool()])
+```
 
-#### Abstract Methods
+### `BaseTool` Class
 
-##### `_run(**kwargs)`
+```python
+from unisonai.tools.tool import BaseTool, Field
+from unisonai.tools.types import ToolParameterType
 
-Implement tool-specific logic.
+class MyTool(BaseTool):
+    def __init__(self):
+        self.name = "my_tool"
+        self.description = "What it does"
+        self.params = [
+            Field(name="param", description="A parameter",
+                  field_type=ToolParameterType.STRING, required=True),
+        ]
+        super().__init__()
 
-**Parameters:**
-- `**kwargs`: Tool parameters as keyword arguments
-
-**Returns:**
-- Tool result (will be wrapped in ToolResult)
-
-#### Public Methods
-
-##### `run(**kwargs) -> ToolResult`
-
-Execute tool with validation and error handling.
-
-**Returns:**
-- `ToolResult` object with success status, result, and metadata
-
-##### `validate_parameters(kwargs) -> bool`
-
-Validate input parameters against field definitions.
-
-##### `get_schema() -> dict`
-
-Get tool schema for documentation and introspection.
-
----
+    def _run(self, param: str) -> str:
+        return f"Result: {param}"
+```
 
 ### Field
 
-Parameter definition for tools with type validation.
-
-#### Constructor Parameters
-
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `name` | str | Parameter identifier | **Required** |
-| `description` | str | Parameter purpose and usage | **Required** |
-| `field_type` | ToolParameterType | Parameter data type | `ToolParameterType.STRING` |
-| `default_value` | Any | Default value if not provided | `None` |
-| `required` | bool | Whether parameter is mandatory | `True` |
-
-#### Methods
-
-##### `format() -> str`
-
-Format field information for display.
-
----
+```python
+Field(
+    name: str,                    # Parameter name
+    description: str,             # Description
+    field_type: ToolParameterType = STRING,  # Type
+    required: bool = True,        # Required?
+    default_value: Any = None,    # Default value
+)
+```
 
 ### ToolParameterType
 
-Enumeration of supported parameter types.
-
-#### Values
-
-| Type | Description |
-|------|-------------|
-| `STRING` | Text/string values |
-| `INTEGER` | Whole number values |
-| `FLOAT` | Decimal number values |
-| `BOOLEAN` | True/false values |
-| `LIST` | Array/list values |
-| `DICT` | Dictionary/object values |
-| `ANY` | Any type (fallback) |
-
----
+| Value | Python Type |
+|-------|-------------|
+| `STRING` | str |
+| `INTEGER` | int |
+| `FLOAT` | float |
+| `BOOLEAN` | bool |
+| `LIST` | list |
+| `DICT` | dict |
+| `ANY` | any |
 
 ### ToolResult
 
-Standardized tool execution result.
-
-#### Properties
+Returned by `tool_instance.run()`:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `success` | bool | Whether tool execution succeeded |
-| `result` | Any | Tool execution result (None if failed) |
-| `error_message` | str | Error description if execution failed |
-| `metadata` | dict | Additional execution metadata |
+| `success` | bool | Whether execution succeeded |
+| `result` | Any | Return value |
+| `error_message` | str | Error message if failed |
+| `metadata` | dict | Execution metadata |
 
 ---
 
 ## LLM Providers
 
-### BaseLLM
+### Available Providers
 
-Abstract base class for LLM providers.
+| Class | Module | Env Variable |
+|-------|--------|-------------|
+| `Gemini` | `unisonai.llms` | `GEMINI_API_KEY` |
+| `Openai` | `unisonai.llms` | `OPENAI_API_KEY` |
+| `Anthropic` | `unisonai.llms` | `ANTHROPIC_API_KEY` |
+| `Cohere` | `unisonai.llms` | `COHERE_API_KEY` |
+| `GroqLLM` | `unisonai.llms` | `GROQ_API_KEY` |
+| `Mixtral` | `unisonai.llms` | `MIXTRAL_API_KEY` |
+| `XAILLM` | `unisonai.llms` | `XAI_API_KEY` |
+| `CerebrasLLM` | `unisonai.llms` | `CEREBRAS_API_KEY` |
 
-#### Constructor Parameters
+### Common LLM Parameters
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `model` | str | Model identifier | **Required** |
-| `temperature` | float | Response creativity (0.0-1.0) | `0.7` |
-| `max_tokens` | int | Maximum response length | `2048` |
-| `api_key` | str | Provider API key | `None` |
-| `verbose` | bool | Enable detailed logging | `False` |
+```python
+llm = Gemini(
+    model="gemini-2.0-flash",   # Model name
+    temperature=0.0,             # Creativity (0.0–1.0)
+    max_tokens=2048,             # Max response length
+    api_key="your-key",          # API key (or use env var)
+)
+```
 
-#### Methods
+### Custom LLM
 
-##### `run(messages, **kwargs)`
+```python
+from unisonai.llms.Basellm import BaseLLM
 
-Execute LLM inference.
+class MyLLM(BaseLLM):
+    def run(self, prompt: str, save_messages: bool = True) -> str:
+        # Your API call here
+        ...
 
-**Parameters:**
-- `messages`: Conversation history
-- `**kwargs`: Provider-specific parameters
-
-**Returns:**
-- LLM response
-
----
-
-### Gemini
-
-Google Gemini LLM provider.
-
-#### Constructor Parameters
-
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `model` | str | Gemini model name | `"gemini-pro"` |
-| `temperature` | float | Response creativity | `0.7` |
-| `max_tokens` | int | Maximum response length | `2048` |
-| `api_key` | str | Google AI API key | `None` |
-| `verbose` | bool | Enable detailed logging | `False` |
-
----
-
-### OpenAI
-
-OpenAI GPT models provider.
-
-#### Constructor Parameters
-
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `model` | str | OpenAI model name | `"gpt-3.5-turbo"` |
-| `temperature` | float | Response creativity | `0.7` |
-| `max_tokens` | int | Maximum response length | `2048` |
-| `api_key` | str | OpenAI API key | `None` |
-| `verbose` | bool | Enable detailed logging | `False` |
-
----
-
-## Configuration
-
-### config Module
-
-API key and configuration management.
-
-#### Functions
-
-##### `set_api_key(provider: str, api_key: str)`
-
-Set API key for specified provider.
-
-**Parameters:**
-- `provider` (str): Provider name ("gemini", "openai", "anthropic", etc.)
-- `api_key` (str): API key value
-
-**Behavior:**
-- Stores key in `~/.unisonai/config.json`
-- Makes key available for LLM initialization
-
----
-
-## Utility Functions
-
-### create_tools(tools: list) -> str
-
-Format tool information for LLM prompts.
-
-**Parameters:**
-- `tools` (list): List of tool classes or instances
-
-**Returns:**
-- Formatted string describing available tools
+    def reset(self):
+        self.messages = []
+```
