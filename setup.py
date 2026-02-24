@@ -6,7 +6,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 
 
-VERSION = '1.2'
+VERSION = '1.3'
 DESCRIPTION = "UnisonAI Multi-Agent Framework provides a flexible, light-weight experience and extensible environment for creating and coordinating multiple AI agents."
 
 try:
@@ -17,10 +17,10 @@ except FileNotFoundError:
 
 # Setting up
 setup(
-    name="unisonai",
+    name="unisonai-sdk",
     version=VERSION,
     author="E5Anant (Anant Sharma)",
-    author_email="e5anant2011@gmail.com",
+    author_email="anant.sharma.dev@gmail.com",
     description=DESCRIPTION,
     long_description_content_type="text/markdown",
     long_description=long_description,
