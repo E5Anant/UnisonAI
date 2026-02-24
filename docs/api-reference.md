@@ -60,7 +60,6 @@ clan.unleash()
 | Function | Available To | Description |
 |----------|-------------|-------------|
 | `send_message(agent_name, message)` | All agents | Send a task to another agent |
-| `pass_result(result)` | All agents | Deliver final output |
 | `ask_user(question)` | Manager only | Ask user a clarifying question |
 
 ---
@@ -156,7 +155,7 @@ Returned by `tool_instance.run()`:
 
 ```python
 llm = Gemini(
-    model="gemini-2.0-flash",   # Model name
+    model="gemini-2.5-flash",   # Model name
     temperature=0.0,             # Creativity (0.0–1.0)
     max_tokens=2048,             # Max response length
     api_key="your-key",          # API key (or use env var)
