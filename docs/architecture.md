@@ -64,7 +64,7 @@ Manager  →  send_message(agent_name, message)
             with team info, plan, and shared instructions
                  │
                  ▼
-            pass_result(result)  →  returned to Manager
+            Replies directly with result  →  returned to Manager
 ```
 
 ### Clan
@@ -86,11 +86,11 @@ User  →  Clan.unleash()
          3. Execution
             Manager.unleash(goal)
             Manager delegates via send_message()
-            Members execute and return via pass_result()
+            Members execute and reply directly with results
               │
               ▼
          4. Completion
-            Manager calls pass_result() → final output
+            Manager replies directly with final output
 ```
 
 ### Tool System
@@ -159,7 +159,7 @@ Manager                          Member
    ├── send_message("Member", msg) ─┤
    │                                ├── Member.unleash(msg)
    │                                ├── (runs own agentic loop)
-   │                                ├── pass_result(result)
+   │                                ├── Replies directly with result
    │◄── "Message delivered." ───────┤
    │                                │
    ├── (continues with result)      │
