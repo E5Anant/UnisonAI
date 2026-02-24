@@ -9,7 +9,7 @@
 - [Why UnisonAI?](#what-makes-unisonai-special)
 - [Installation](#quick-start)
 - [Core Components](#core-components)
-- [Configuration](#configuration)
+- [API Keys](#api-key-configuration)
 - [Parameter Reference Tables](#documentation-hub)
 - [Usage Examples](#usage-examples)
 - [FAQ](#faq)
@@ -29,15 +29,15 @@
 
 ---
 
-## Overview!
+## Overview
 
-UnisonAI is a flexible and extensible Python framework for building, coordinating, and scaling multiple AI agents—each powered by the LLM of your choice.
+UnisonAI is a lightweight Python framework for building single-agent and multi-agent AI systems.
 
-- **Agent:** For solo, focused tasks or as part of a clan for teamwork.
-- **Clan:** For coordination and distributed problem-solving with multiple agents.
-- **Tool System:** Easily augment agents with custom, pluggable tools (web search, time, APIs, your own logic).
+- **Agent** — standalone or part of a clan, with tool integration and conversation history.
+- **Clan** — coordinate multiple agents on a shared goal with built-in A2A messaging.
+- **Tool System** — create tools with `@tool` decorator or `BaseTool` class; type-validated, standardized results.
 
-Supports Cohere, Mixtral, Groq, Gemini, Grok, OpenAI, Anthropic, HelpingAI, and any custom model (just extend `BaseLLM`). UnisonAI is designed for real-world, production-grade multi-agent AI applications.
+Supports **Gemini, OpenAI, Anthropic, Cohere, Groq, Mixtral, xAI, Cerebras**, and any custom model (extend `BaseLLM`).
 
 ---
 
@@ -50,44 +50,32 @@ pip install unisonai
 ```python
 from unisonai import Agent
 from unisonai.llms import Gemini
-from unisonai import config
 
-config.set_api_key("gemini", "your-api-key")
 agent = Agent(
     llm=Gemini(model="gemini-2.0-flash"),
     identity="Assistant",
-    description="A helpful AI assistant"
+    description="A helpful AI assistant",
 )
-print(agent.unleash(task="Explain quantum computing"))
+
+print(agent.unleash(task="Explain quantum computing in 3 sentences"))
 ```
 
 ---
 
 ## What Makes UnisonAI Special
 
-UnisonAI stands out with its unique **Agent-to-Agent (A2A) communication** architecture, enabling seamless coordination between AI agents as if they were human team members collaborating on complex tasks.
-
-### A2A Communication Architecture
+**Agent-to-Agent (A2A) communication** — agents talk to each other as if they were teammates collaborating on complex tasks.
 
 <div>
   <img src="https://github.com/UnisonaiOrg/UnisonAI/blob/main/assets/Example.jpg" alt="Example" width="60%"/>
 </div>
 
+### Perfect For
 
-### Latest Enhancements
-
-- **🔒 Strong Type Validation**: All tool parameters validated against `ToolParameterType` enum before execution
-- **🛡️ Enhanced Error Handling**: Comprehensive error catching with detailed metadata for debugging
-- **📊 Standardized Results**: All tools return `ToolResult` objects with success status and metadata
-
----
-
-### Perfect For:
-
-- **Complex Research Tasks**: Multiple agents gathering, analyzing, and synthesizing information
-- **Workflow Automation**: Coordinated agents handling multi-step business processes
-- **Content Creation**: Specialized agents for research, writing, editing, and publishing
-- **Data Analysis**: Distributed agents processing large datasets with different expertise
+- **Complex Research** — multiple agents gathering, analyzing, and synthesizing information
+- **Workflow Automation** — coordinated agents handling multi-step processes
+- **Content Creation** — specialized agents for research, writing, and editing
+- **Data Analysis** — distributed agents processing data with different expertise
 
 ---
 
@@ -95,9 +83,9 @@ UnisonAI stands out with its unique **Agent-to-Agent (A2A) communication** archi
 
 | Component | Purpose | Key Features |
 |-----------|---------|--------------|
-| **Agent** | Standalone or clan member agent | Own history, tool integration, configurable LLMs, inter-agent messaging |
-| **Clan** | Multi-agent orchestration | Team management, shared goals, coordinated execution |
-| **Tool System** | Extensible capability framework | Type validation, error handling, standardized results |
+| **Agent** | Standalone or clan member | Tool integration, history, inter-agent messaging |
+| **Clan** | Multi-agent orchestration | Automatic planning, task distribution, A2A communication |
+| **Tool System** | Extensible capabilities | `@tool` decorator, `BaseTool` class, type validation |
 
 ---
 
@@ -108,48 +96,105 @@ UnisonAI stands out with its unique **Agent-to-Agent (A2A) communication** archi
 ```python
 from unisonai import Agent
 from unisonai.llms import Gemini
-from unisonai.tools.memory import MemoryTool
 
 agent = Agent(
     llm=Gemini(model="gemini-2.0-flash"),
     identity="Research Assistant",
-    description="An AI assistant with memory capabilities",
-    tools=[MemoryTool]
+    description="An AI assistant for research tasks",
 )
-agent.unleash(task="Store important project details")
+
+agent.unleash(task="Summarize the key benefits of renewable energy")
+```
+
+### Agent with Tools
+
+```python
+from unisonai import Agent
+from unisonai.llms import Gemini
+from unisonai.tools.tool import tool
+
+@tool(name="calculator", description="Arithmetic on two numbers")
+def calculator(operation: str, a: float, b: float) -> str:
+    ops = {"add": a + b, "subtract": a - b, "multiply": a * b, "divide": a / b if b else "err"}
+    return str(ops.get(operation, "unknown op"))
+
+agent = Agent(
+    llm=Gemini(model="gemini-2.0-flash"),
+    identity="Math Helper",
+    description="An assistant with a calculator tool",
+    tools=[calculator()],
+)
+
+agent.unleash(task="What is 1500 * 32?")
 ```
 
 ### Multi-Agent Clan
 
 ```python
 from unisonai import Agent, Clan
+from unisonai.llms import Gemini
 
-research_agent = Agent(llm=Gemini(), identity="Researcher", task="Gather information")
-analysis_agent = Agent(llm=Gemini(), identity="Analyst", task="Analyze findings")
+researcher = Agent(
+    llm=Gemini(model="gemini-2.0-flash"),
+    identity="Researcher",
+    description="Gathers information on topics",
+    task="Research assigned topics",
+)
+
+writer = Agent(
+    llm=Gemini(model="gemini-2.0-flash"),
+    identity="Writer",
+    description="Writes clear reports from research",
+    task="Write polished reports",
+)
 
 clan = Clan(
     clan_name="Research Team",
-    manager=research_agent,
-    members=[research_agent, analysis_agent],
-    goal="Comprehensive market analysis"
+    manager=researcher,
+    members=[researcher, writer],
+    shared_instruction="Researcher gathers info, Writer produces the report.",
+    goal="Write a brief report on AI in healthcare",
+    output_file="report.txt",
 )
+
 clan.unleash()
 ```
 
 ### Custom Tools
 
+UnisonAI supports two ways to create tools:
+
+#### 1. Decorator-based (Recommended)
+
+```python
+from unisonai.tools.tool import tool
+
+@tool(name="calculator", description="Math operations")
+def calculator(operation: str, a: float, b: float) -> str:
+    if operation == "add":
+        return str(a + b)
+    elif operation == "multiply":
+        return str(a * b)
+    return "Unknown operation"
+```
+
+#### 2. Class-based (For complex/stateful tools)
+
 ```python
 from unisonai.tools.tool import BaseTool, Field
 from unisonai.tools.types import ToolParameterType
 
-class CalculatorTool(BaseTool):
+class Calculator(BaseTool):
     def __init__(self):
         self.name = "calculator"
-        self.description = "Mathematical operations"
+        self.description = "Math operations"
         self.params = [
-            Field(name="operation", field_type=ToolParameterType.STRING, required=True),
-            Field(name="a", field_type=ToolParameterType.FLOAT, required=True),
-            Field(name="b", field_type=ToolParameterType.FLOAT, required=True)
+            Field(name="operation", description="add or multiply",
+                  field_type=ToolParameterType.STRING, required=True),
+            Field(name="a", description="First number",
+                  field_type=ToolParameterType.FLOAT, required=True),
+            Field(name="b", description="Second number",
+                  field_type=ToolParameterType.FLOAT, required=True),
         ]
         super().__init__()
 
@@ -159,46 +204,39 @@ class CalculatorTool(BaseTool):
 
 ---
 
-## Configuration
+## API Key Configuration
 
-### API Keys
+1. **Environment Variables**:
+   ```bash
+   export GEMINI_API_KEY="your-key"
+   export OPENAI_API_KEY="your-key"
+   ```
 
-```python
-from unisonai import config
-
-# Method 1: Configuration system
-config.set_api_key("gemini", "your-key")
-config.set_api_key("openai", "your-key")
-
-# Method 2: Environment variables
-export GEMINI_API_KEY="your-key"
-export OPENAI_API_KEY="your-key"
-
-# Method 3: Direct LLM initialization
-llm = Gemini(api_key="your-key")
-```
+2. **Direct Initialization**:
+   ```python
+   llm = Gemini(api_key="your-key")
+   ```
 
 ---
 
 ## Documentation Hub
 
-### 🚀 **Getting Started**
-- **[Quick Start Guide](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/quick-start.md)** - 5-minute setup guide
-- **[Installation](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/README.md#installation)** - Detailed installation options
+### Getting Started
+- **[Quick Start Guide](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/quick-start.md)** — 5-minute setup
+- **[Installation](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/README.md#installation)** — Detailed options
 
-### 📖 **Core Documentation**
-- **[API Reference](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/api-reference.md)** - Complete API documentation
-- **[Architecture Guide](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/architecture.md)** - System design and patterns
-- **[Usage Guidelines](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/usage-guide.md)** - Best practices and patterns
+### Core Documentation
+- **[API Reference](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/api-reference.md)** — Complete API docs
+- **[Architecture Guide](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/architecture.md)** — System design
+- **[Usage Guidelines](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/usage-guide.md)** — Best practices
 
-### 🛠️ **Advanced Features**
-- **[Tool System Guide](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/tools-guide.md)** - Custom tool creation and validation
-- **[Parameter Reference](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/README.md#parameter-reference-tables)** - Complete parameter documentation
+### Advanced Features
+- **[Tool System Guide](https://github.com/UnisonaiOrg/UnisonAI/blob/main/docs/tools-guide.md)** — Custom tool creation
 
-### 💡 **Examples & Tutorials**
-- **[Basic Examples](https://github.com/UnisonaiOrg/UnisonAI/blob/main/examples/basic_agent.py)** - Simple agent patterns
-- **[Advanced Examples](https://github.com/UnisonaiOrg/UnisonAI/blob/main/examples/clan-agent_example.py)** - Multi-agent coordination
-- **[Tool Examples](https://github.com/UnisonaiOrg/UnisonAI/blob/main/examples/tool_example.py)** - Custom tool implementations
+### Examples
+- **[Basic Agent](https://github.com/UnisonaiOrg/UnisonAI/blob/main/examples/basic_agent.py)** — Minimal agent
+- **[Tool Example](https://github.com/UnisonaiOrg/UnisonAI/blob/main/examples/tool_example.py)** — `@tool` decorator & `BaseTool`
+- **[Clan Example](https://github.com/UnisonaiOrg/UnisonAI/blob/main/examples/clan-agent_example.py)** — Multi-agent coordination
 
 ---
 
@@ -216,33 +254,31 @@ For complex, multi-step tasks requiring specialized agents working together.
 
 <details>
 <summary><b>Can I add custom LLMs?</b></summary>
-Yes! Extend <code>BaseLLM</code> class to integrate any model provider.
+Yes! Extend <code>BaseLLM</code> to integrate any model provider.
 </details>
 
 <details>
 <summary><b>What are tools?</b></summary>
-Reusable components that extend agent capabilities (web search, APIs, custom logic).
+Reusable components that extend agent capabilities. Create them with the <code>@tool</code> decorator or the <code>BaseTool</code> class.
 </details>
 
 <details>
 <summary><b>How do I manage API keys?</b></summary>
-Use config system, environment variables, or pass directly to LLMs.
+Use environment variables or pass directly to the LLM constructor.
 </details>
 
 ---
 
 ## Contributing
 
-Founder: Anant Sharma (E5Anant)[https://github.com/E5Anant]
+Author: [Anant Sharma (E5Anant)](https://github.com/E5Anant)
 
-PRs and issues welcome! See our [Contributing Guide](https://github.com/UnisonaiOrg/UnisonAI/issues).
+PRs and issues welcome!
 
 <a href="https://github.com/UnisonaiOrg/UnisonAI/issues">Open Issues</a> •
 <a href="https://github.com/UnisonaiOrg/UnisonAI/pulls">Submit PRs</a> •
 <a href="https://github.com/UnisonaiOrg/UnisonAI">Suggest Features</a>
 
 ---
-
-
 
 
