@@ -1,316 +1,197 @@
 # Architecture Guide
 
-## System Architecture
-
-### High-Level Architecture
+## High-Level Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            UnisonAI Framework                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
-│  │   Single Agent  │  │   Multi-Agent   │  │   External      │          │
-│  │   Architecture  │  │   Architecture  │  │   Integration   │          │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
-│           │                     │                     │                 │
-│           ▼                     ▼                     ▼                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
-│  │   LLM Layer     │  │   Agent Layer   │  │    Tool Layer   │          │
-│  │                 │  │                 │  │                 │          │
-│  │ • Provider APIs │  │ • Coordination  │  │ • Base Tools    │          │
-│  │ • Model Loading │  │ • Communication │  │ • Type System   │          │
-│  │ • Token Mgmt    │  │ • State Mgmt    │  │ • Validation    │          │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
-│           │                     │                     │                 │
-│           ▼                     ▼                     ▼                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
-│  │   Data Layer    │  │  History Layer  │  │  Config Layer   │          │
-│  │                 │  │                 │  │                 │          │
-│  │ • Persistence   │  │ • Conversation  │  │ • API Keys      │          │
-│  │ • State Storage │  │ • Logging       │  │ • Settings      │          │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
-└─────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                  UnisonAI Framework              │
+├──────────────────────────────────────────────────┤
+│                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  Agent   │  │   Clan   │  │  Tools   │        │
+│  │          │  │          │  │          │        │
+│  │ • LLM    │  │ • Plan   │  │ • @tool  │        │
+│  │ • Tools  │  │ • Assign │  │ • Base   │        │
+│  │ • Loop   │  │ • A2A    │  │ • Field  │        │
+│  └──────────┘  └──────────┘  └──────────┘        │
+│       │              │              │            │
+│       ▼              ▼              ▼            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │ LLM      │  │ History  │  │ Prompts  │        │
+│  │ Providers│  │ (JSON)   │  │          │        │
+│  └──────────┘  └──────────┘  └──────────┘        │
+└──────────────────────────────────────────────────┘
 ```
 
-### Single Agent Architecture
+---
 
-#### Component Diagram
+## Core Components
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Single Agent System                        │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   User      │──────▶│  Single_    │──────▶│   LLM       │    │
-│  │  Interface  │       │   Agent     │       │  Provider   │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   Task      │       │    Tool     │◀─────▶│   External  │    │
-│  │  Processor  │       │   System    │       │    APIs     │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  History    │       │  Validation │       │   Results   │    │
-│  │ Management  │       │   Engine    │       │  Processor  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Agent
 
-#### Data Flow
+The central class. Works standalone or as part of a Clan.
 
-1. **Task Input**: User provides task description
-2. **History Loading**: Agent loads previous conversation history
-3. **LLM Configuration**: System prompt generated with tools and context
-4. **Tool Integration**: Available tools formatted for LLM context
-5. **Task Execution**: LLM processes task with tool capabilities
-6. **Result Processing**: Response generated and history saved
-7. **Output Delivery**: Final result returned to user
-
-### Multi-Agent Architecture
-
-#### Clan Coordination Flow
+**Standalone flow:**
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       Clan Coordination                          │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   Manager   │◀─────▶│   Member    │       │   Member    │    │
-│  │   Agent     │       │   Agent 1   │       │   Agent 2   │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Task       │       │  Specialized│       │  Specialized│    │
-│  │ Planning    │       │    Tasks    │       │    Tasks    │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Agent      │◀─────▶│  Tool       │◀─────▶│  External   │    │
-│  │ Coordination│       │  Execution  │       │  Services   │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Result     │       │  History    │       │  Unified    │    │
-│  │ Aggregation │       │ Management  │       │   Output    │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+User  →  Agent.unleash(task)
+              │
+              ▼
+         Build system prompt (INDIVIDUAL_PROMPT)
+              │
+              ▼
+         Agentic loop (max 10 turns):
+           1. LLM generates response
+           2. Extract <tool>...</tool> calls
+           3. Execute tools safely (ast.parse)
+           4. Feed results back to LLM
+           5. Repeat until no tools → final answer
+              │
+              ▼
+         Return answer
 ```
 
-#### Agent-to-Agent Communication Protocol
-
-1. **Task Broadcasting**: Manager agent broadcasts task to all members
-2. **Capability Assessment**: Each agent evaluates its ability to contribute
-3. **Task Delegation**: Manager assigns specific tasks to capable agents
-4. **Parallel Execution**: Agents execute tasks independently
-5. **Result Sharing**: Agents share results with team members
-6. **Conflict Resolution**: Manager resolves conflicting information
-7. **Synthesis**: Manager synthesizes all contributions into final output
-
-### Tool System Architecture
-
-#### Tool Execution Pipeline
+**Clan member flow:**
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       Tool Execution Pipeline                       │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   LLM       │──────▶│   Tool      │──────▶│  Parameter  │    │
-│  │  Request    │       │  Selection  │       │ Validation  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┘    │
-│  │   Tool      │       │   Type      │       │     Valid       │
-│  │ Registration│       │  Checking   │       │  Parameters     │
-│  └─────────────┘       └─────────────┘       └─────────────────┘
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Tool       │──────▶│  Execution  │──────▶│   Result    │    │
-│  │ Instance    │       │   Engine    │       │ Generation  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   Error     │       │  Success    │       │   LLM       │    │
-│  │  Handling   │       │  Response   │◀─────│  Integration│    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+Manager  →  send_message(agent_name, message)
+                 │
+                 ▼
+            Member.unleash(message)
+                 │
+                 ▼
+            Same agentic loop, but uses AGENT_PROMPT
+            with team info, plan, and shared instructions
+                 │
+                 ▼
+            pass_result(result)  →  returned to Manager
 ```
 
-#### Type Validation System
+### Clan
+
+Coordinates multiple agents.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Type Validation System                      │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   Field     │──────▶│  Type       │──────▶│  Runtime    │    │
-│  │ Definition  │       │  Validation │       │ Validation  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  STRING     │       │  INTEGER    │       │   FLOAT     │    │
-│  │  Validation │       │ Validation  │       │ Validation  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  BOOLEAN    │       │    LIST     │       │    DICT     │    │
-│  │  Validation │       │ Validation  │       │ Validation  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  ANY Type   │       │  Error      │       │  Success    │    │
-│  │  Fallback   │       │ Generation  │       │ Validation  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+User  →  Clan.unleash()
+              │
+              ▼
+         1. Planning Phase
+            Manager LLM generates step-by-step plan
+              │
+              ▼
+         2. Distribution
+            Plan shared with all member agents
+              │
+              ▼
+         3. Execution
+            Manager.unleash(goal)
+            Manager delegates via send_message()
+            Members execute and return via pass_result()
+              │
+              ▼
+         4. Completion
+            Manager calls pass_result() → final output
 ```
 
-### Data Management Architecture
-
-#### Persistence Layer
+### Tool System
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Data Persistence Layer                      │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Agent      │       │   Clan      │       │  Tool       │    │
-│  │  History    │       │  History    │       │  Results    │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  JSON       │       │  JSON       │       │  JSON       │    │
-│  │  Storage    │       │  Storage    │       │  Storage    │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  File       │       │  File       │       │  File       │    │
-│  │  System     │       │  System     │       │  System     │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+@tool decorator  ──┐
+                   ├──  BaseTool instance  ──  Agent.tools
+BaseTool class  ──┘         │
+                            ▼
+                     create_tools()
+                     (generates function signatures
+                      for the system prompt)
 ```
 
-### Security Architecture
-
-#### API Key Management
+**Tool execution safety:**
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    API Key Security Layer                       │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │ Environment │       │ Config      │       │ Direct      │    │
-│  │ Variables   │──────▶│ Files       │──────▶│ Parameters  │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Key        │       │  Key        │       │  Key        │    │
-│  │ Validation  │       │ Encryption  │       │ Injection   │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │  Secure     │       │  Secure     │       │  Runtime    │    │
-│  │ Storage     │       │ Transport   │       │ Usage       │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+LLM Output:  <tool>calculator(operation="add", a=5, b=3)</tool>
+                │
+                ▼
+         ast.parse()  →  validate function name
+                │
+                ▼
+         ast.literal_eval()  →  parse arguments safely
+                │
+                ▼
+         tool.run(**kwargs)  →  ToolResult
+                │
+                ▼
+         Result fed back to LLM
 ```
 
-## Component Interactions
+---
 
-### Sequence Diagrams
+## Prompt System
 
-#### Agent Task Execution
+| Prompt | Used When | Key Placeholders |
+|--------|-----------|-----------------|
+| `INDIVIDUAL_PROMPT` | Standalone agent | `{identity}`, `{description}`, `{user_task}`, `{tools}` |
+| `AGENT_PROMPT` | Clan member | Above + `{clan_name}`, `{plan}`, `{members}`, `{shared_instruction}` |
+| `MANAGER_PROMPT` | Clan manager | Same as agent + `ask_user` docs |
+| `PLAN_PROMPT` | Planning phase | `{members}`, `{client_task}` |
 
-```
-┌─────────┐   ┌─────────────┐   ┌─────────┐   ┌─────────────┐
-│   User  │──▶│    Agent    │──▶│   LLM   │──▶│    Tool     │
-│         │   │             │   │ Provider│   │   System    │
-└─────────┘   └─────────────┘   └─────────┘   └─────────────┘
-     │              │                │                │
-     │    Task      │      Config    │     Execute    │
-     │   Input      │     Request    │    Request     │
-     └──────────────┘   └──────────────┘   └──────────────┘
-```
+---
 
-#### Multi-Agent Coordination
+## Data Flow
+
+### Conversation History
 
 ```
-┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
-│   User  │──▶│  Clan   │──▶│ Manager │──▶│ Member  │
-│         │   │         │   │  Agent  │   │  Agent  │
-└─────────┘   └─────────┘   └─────────┘   └─────────┘
-     │              │                │         │
-     │    Task      │    Delegate    │  Execute│
-     │   Input      │     Tasks      │   Task  │
-     └──────────────┘   └──────────────┘   └──────┘
+Agent.unleash()
+    │
+    ├── Load history from {history_folder}/{identity}.json
+    │   (catches JSONDecodeError for corrupt files)
+    │
+    ├── Run agentic loop (appends messages)
+    │
+    └── Save updated history to JSON after each turn
 ```
 
-### State Management
-
-#### Conversation History Flow
+### A2A Messaging
 
 ```
-┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-│   Load      │──▶│  Append     │──▶│  Process    │──▶│   Save      │
-│  Existing   │   │   New       │   │  Messages   │   │   Updated   │
-│  History    │   │  Messages   │   │             │   │  History    │
-└─────────────┘   └─────────────┘   └─────────────┘   └─────────────┘
+Manager                          Member
+   │                                │
+   ├── send_message("Member", msg) ─┤
+   │                                ├── Member.unleash(msg)
+   │                                ├── (runs own agentic loop)
+   │                                ├── pass_result(result)
+   │◄── "Message delivered." ───────┤
+   │                                │
+   ├── (continues with result)      │
 ```
 
-## Deployment Architecture
+---
 
-### Production Deployment
+## File Structure
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Production Deployment                        │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   Load      │       │  Auto-      │       │  Health     │    │
-│  │ Balancer    │       │  Scaling    │       │  Monitoring │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │ Application │       │  Agent      │       │  External   │    │
-│  │  Servers    │       │ Instances   │       │ Services    │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-│         │                     │                     │            │
-│         ▼                     ▼                     ▼            │
-│  ┌─────────────┐       ┌─────────────┐       ┌─────────────┐    │
-│  │   Redis     │       │ Message     │       │   APIs      │    │
-│  │   Cache     │       │   Queue     │       │  Gateway    │    │
-│  └─────────────┘       └─────────────┘       └─────────────┘    │
-└─────────────────────────────────────────────────────────────────┘
+unisonai/
+├── __init__.py          # Exports: Agent, Clan, BaseTool, Field
+├── agent.py             # Agent class, create_tools(), tool execution
+├── clan.py              # Clan class, planning + execution
+├── async_helper.py      # Async/sync bridge utilities
+├── prompts/
+│   ├── individual.py    # INDIVIDUAL_PROMPT
+│   ├── agent.py         # AGENT_PROMPT
+│   ├── manager.py       # MANAGER_PROMPT
+│   └── plan.py          # PLAN_PROMPT
+├── tools/
+│   ├── tool.py          # BaseTool, Field, ToolResult, @tool
+│   ├── types.py         # ToolParameterType enum
+│   └── rag.py           # RAGTool
+└── llms/
+    ├── Basellm.py       # Abstract BaseLLM
+    ├── genai.py          # Gemini
+    ├── openaillm.py      # OpenAI
+    ├── anthropicllm.py   # Anthropic
+    ├── coherellm.py      # Cohere
+    ├── groqllm.py        # Groq
+    ├── mixtral.py        # Mixtral
+    ├── xai.py            # xAI
+    └── cerebras.py       # Cerebras
 ```
-
-## Performance Considerations
-
-### Scalability Patterns
-
-- **Horizontal Scaling**: Multiple agent instances across servers
-- **Load Distribution**: Task distribution across available agents
-- **Caching Strategy**: Conversation history and tool results caching
-- **Async Processing**: Non-blocking tool execution where possible
-
-### Memory Management
-
-- **History Pruning**: Automatic cleanup of old conversation data
-- **Tool State Management**: Proper cleanup of tool instances
-- **Memory Limits**: Configurable memory usage limits per agent
