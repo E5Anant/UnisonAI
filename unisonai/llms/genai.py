@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from typing import List, Dict
 import google.generativeai as genaii
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-from ..config import config
 
 load_dotenv()
 
@@ -14,7 +13,7 @@ class Gemini:
 
     def __init__(self,
                  messages: list[dict[str, str]] = [],
-                 model: str = "gemini-2.0-flash",
+                 model: str = "gemini-2.5-flash",
                  temperature: float = 0.0,
                  system_prompt: str | None = None,
                  max_tokens: int = 2048,
@@ -34,22 +33,23 @@ class Gemini:
 
         # Configure API key
         if api_key:
-            config.set_api_key('gemini', api_key)
+            self.api_key = api_key
             os.environ["GOOGLE_API_KEY"] = api_key
         else:
-            stored_key = config.get_api_key('gemini')
-            if stored_key:
-                os.environ["GOOGLE_API_KEY"] = stored_key
-            elif os.getenv("GEMINI_API_KEY"):
-                config.set_api_key('gemini', os.getenv("GEMINI_API_KEY"))
-                os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY")
+            if os.getenv("GEMINI_API_KEY"):
+                self.api_key = os.getenv("GEMINI_API_KEY")
+                os.environ["GOOGLE_API_KEY"] = self.api_key
+            elif os.getenv("GOOGLE_API_KEY"):
+                self.api_key = os.getenv("GOOGLE_API_KEY")
             else:
-                raise ValueError(
-                    "No API key provided. Please provide an API key either through:\n"
-                    "1. The api_key parameter\n"
-                    "2. config.set_api_key('gemini', 'your-api-key')\n"
-                    "3. GEMINI_API_KEY environment variable"
-                )
+                self.api_key = None
+
+        if not self.api_key:
+            raise ValueError(
+                "No API key provided. Please provide an API key either through:\n"
+                "1. The api_key parameter\n"
+                "2. GEMINI_API_KEY (or GOOGLE_API_KEY) environment variable"
+            )
 
         genaii.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
@@ -72,8 +72,8 @@ class Gemini:
         if self.system_prompt:
             self.client = genaii.GenerativeModel(
                 model_name=self.model,
-                system_instruction=system_prompt,
-                safety_settings=safety_settings,
+                system_instruction=self.system_prompt,
+                safety_settings=self.safety_settings,
                 generation_config={
                     "temperature": self.temperature,
                     "max_output_tokens": self.max_tokens,
