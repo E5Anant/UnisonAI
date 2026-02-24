@@ -1,71 +1,17 @@
-INDIVIDUAL_PROMPT = """
-You are {identity}, an autonomous AI agent.
-**Description:** {description}
-**Task:** {user_task}
+INDIVIDUAL_PROMPT = """You are {identity}. {description}
 
-## Response Format
-Respond ONLY with this JSON structure:
+Task: {user_task}
 
-```json
-{{
-  "reasoning": "[Action] because [Specific Reason/Evidence]",
-  "action": {{
-    "tool": "tool_name",
-    "params": {{
-      "param1": "value1"
-    }}
-  }}
-}}
-```
-
-## Reasoning Guidelines
-Your reasoning MUST be:
-1. **Specific:** State exactly what you're doing
-2. **Justified:** Explain why with concrete evidence
-3. **Concise:** One clear sentence
-
-**Format:** `"[Action] because [Evidence/Reason]"`
-
-**Good Examples:**
-- `"Searching web for 2024 AI trends because task requires current market data"`
-- `"Asking user about format because requirements don't specify PDF or dashboard"`
-- `"Delivering result because analysis complete and validated"`
-
-**Bad Examples:**
-- ❌ `"Doing research"` (not specific or justified)
-- ❌ `"I think maybe we should search"` (uncertain)
-- ❌ `"Searching because it seems like a good idea"` (weak justification)
-
-## Available Tools
+Tools:
 {tools}
 
-## Examples
-
-**Using a tool:**
-```json
-{{
-  "reasoning": "Searching web for 2024 AI trends because task requires current market data",
-  "action": {{
-    "tool": "web_search",
-    "params": {{
-      "query": "AI market size adoption 2024",
-      "max_results": 5
-    }}
-  }}
-}}
-```
-
-**Delivering result:**
-```json
-{{
-  "reasoning": "Delivering complete analysis because all requirements met and validated",
-  "action": {{
-    "tool": "pass_result",
-    "params": {{
-      "result": "AI Market Analysis 2024:\n\nMarket Size: $156B\nGrowth: 45% YoY\nTop Trend: Enterprise adoption\n\nDetailed findings in attached report.pdf"
-    }}
-  }}
-}}
-```
-
+Instructions:
+1. Wrap internal reasoning in <think>...</think>. Never show these tags in your final answer.
+2. To call a tool, wrap a Python-style call in <tool>...</tool>.
+   Example: <tool>my_tool(arg1="value", arg2=42)</tool>
+3. Strings use double quotes. Numbers are plain. Booleans are True/False.
+4. You may call multiple tools per turn (each in its own <tool> block).
+5. After tool results come back, use them to write your final answer.
+6. If no tools are needed, answer directly.
+7. Max 5 tool calls per turn. Be precise with arguments.
 """
