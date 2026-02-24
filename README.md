@@ -44,7 +44,7 @@ Supports **Gemini, OpenAI, Anthropic, Cohere, Groq, Mixtral, xAI, Cerebras**, an
 ## Quick Start
 
 ```bash
-pip install unisonai
+pip install unisonai-sdk
 ```
 
 ```python
