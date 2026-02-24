@@ -6,7 +6,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 
 
-VERSION = '1.3'
+VERSION = '1.4'
 DESCRIPTION = "UnisonAI Multi-Agent Framework provides a flexible, light-weight experience and extensible environment for creating and coordinating multiple AI agents."
 
 try:
