@@ -33,7 +33,7 @@
 
 ### Setup
 - [ ] Python 3.10–3.12 installed
-- [ ] `pip install unisonai`
+- [ ] `pip install unisonai-sdk`
 - [ ] API key configured
 
 ### Tool Development
