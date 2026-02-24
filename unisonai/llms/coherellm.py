@@ -11,6 +11,7 @@ class Cohere:
     USER = "user"
     MODEL = "model"
     SYSTEM = "System"
+    TOOL = "tool"
 
     def __init__(
             self,
@@ -76,9 +77,22 @@ class Cohere:
         if self.system_prompt != None:
             self.add_message(self.SYSTEM, self.system_prompt)
 
-    def run(self, prompt: str, save_messages: bool = True) -> str:
+    def _get_api_messages(self):
+        """Return messages with 'tool' role mapped to 'user' for API compatibility."""
+        api_msgs = []
+        for msg in self.messages:
+            if msg.get("role") == "tool":
+                mapped = dict(msg)
+                mapped["role"] = self.USER
+                api_msgs.append(mapped)
+            else:
+                api_msgs.append(msg)
+        return api_msgs
+
+    def run(self, prompt: str, save_messages: bool = True, input_role: str = None) -> str:
+        role = input_role if input_role else self.USER
         if save_messages:
-            self.add_message(self.USER, prompt)
+            self.add_message(role, prompt)
         """
         Run the LLM
 
@@ -101,7 +115,7 @@ class Cohere:
             model=self.model,
             message=prompt,
             temperature=self.temperature,
-            chat_history=self.messages,
+            chat_history=self._get_api_messages(),
             connectors=self.connectors,
             preamble=self.system_prompt,
             max_tokens=self.max_tokens,
