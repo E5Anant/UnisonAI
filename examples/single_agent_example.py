@@ -1,99 +1,43 @@
+"""
+Single Agent with Tools — UnisonAI
+
+Shows an agent using class-based tools to answer a multi-part question.
+"""
+
+import datetime
 from unisonai import Agent
 from unisonai.llms import Gemini
-from unisonai.tools.tool import BaseTool, Field
+from unisonai.tools.tool import BaseTool, Field, tool
 from unisonai.tools.types import ToolParameterType
-from unisonai import config
-import datetime
 
-config.set_api_key("gemini", "Your API Key")
 
-class TimeTool(BaseTool):
-    """Enhanced time tool with proper field validation."""
-    
-    def __init__(self):
-        self.name = "time_tool"
-        self.description = "Get current date and time in specified format with timezone support."
-        self.params = [
-            Field(
-                name="format",
-                description="DateTime format string (e.g., '%Y-%m-%d %H:%M:%S')",
-                field_type=ToolParameterType.STRING,
-                default_value="%Y-%m-%d %H:%M:%S",
-                required=False
-            ),
-            Field(
-                name="include_timezone",
-                description="Whether to include timezone information",
-                field_type=ToolParameterType.BOOLEAN,
-                default_value=False,
-                required=False
-            )
-        ]
-        super().__init__()
-    
-    def _run(self, format: str = "%Y-%m-%d %H:%M:%S", include_timezone: bool = False) -> str:
-        """Get current time with optional timezone."""
-        current_time = datetime.datetime.now()
-        
-        if include_timezone:
-            # Add timezone info if requested
-            import time
-            timezone = time.tzname[0]
-            return f"{current_time.strftime(format)} {timezone}"
-        
-        return current_time.strftime(format)
+@tool(name="current_time", description="Get the current date and time")
+def current_time(format: str = "%Y-%m-%d %H:%M:%S") -> str:
+    """Return the current date/time in the given format."""
+    return datetime.datetime.now().strftime(format)
 
-class CalculatorTool(BaseTool):
-    """Mathematical calculator with type validation."""
-    
-    def __init__(self):
-        self.name = "calculator"
-        self.description = "Perform basic mathematical operations on two numbers."
-        self.params = [
-            Field(
-                name="operation",
-                description="Math operation: add, subtract, multiply, divide",
-                field_type=ToolParameterType.STRING,
-                required=True
-            ),
-            Field(
-                name="number1",
-                description="First number for the operation",
-                field_type=ToolParameterType.FLOAT,
-                required=True
-            ),
-            Field(
-                name="number2", 
-                description="Second number for the operation",
-                field_type=ToolParameterType.FLOAT,
-                required=True
-            )
-        ]
-        super().__init__()
-    
-    def _run(self, operation: str, number1: float, number2: float) -> float:
-        """Execute mathematical operation."""
-        operations = {
-            "add": lambda x, y: x + y,
-            "subtract": lambda x, y: x - y,
-            "multiply": lambda x, y: x * y,
-            "divide": lambda x, y: x / y if y != 0 else "Error: Division by zero"
-        }
-        
-        if operation not in operations:
-            raise ValueError(f"Unsupported operation: {operation}")
-        
-        return operations[operation](number1, number2)
 
-# Create enhanced agent with multiple tools
-web_agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
-    identity="Enhanced Assistant",
-    description="Advanced assistant with time and calculation capabilities",
-    tools=[TimeTool, CalculatorTool],
+@tool(name="calculator", description="Basic arithmetic on two numbers")
+def calculator(operation: str, a: float, b: float) -> str:
+    """Operations: add, subtract, multiply, divide."""
+    ops = {
+        "add": a + b,
+        "subtract": a - b,
+        "multiply": a * b,
+        "divide": a / b if b != 0 else "Error: division by zero",
+    }
+    return str(ops.get(operation, f"Unknown: {operation}"))
+
+
+agent = Agent(
+    llm=Gemini(model="gemini-2.5-flash"),
+    identity="Assistant",
+    description="A helpful assistant with time and math tools",
+    tools=[current_time(), calculator()],
     verbose=True,
-    history_folder="history",
-    # output_file="output.txt"
 )
 
-web_agent.unleash(task="What's the current time and can you calculate what 1000 shares at $150 each would cost?")
+result = agent.unleash(
+    task="What time is it right now? Also, how much is 1000 shares at $150 each?"
+)
+print(result)
