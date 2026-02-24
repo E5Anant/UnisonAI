@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from rich import print
 from typing import Optional, List, Dict
 import requests
-from ..config import config
 
 load_dotenv()
 
@@ -27,22 +26,16 @@ class Mixtral:
     ) -> None:
         # Configure API key
         if api_key:
-            config.set_api_key('mixtral', api_key)
             self.api_key = api_key
         else:
-            stored_key = config.get_api_key('mixtral')
-            if stored_key:
-                self.api_key = stored_key
-            elif os.getenv("MISTRAL_API_KEY"):
-                config.set_api_key('mixtral', os.getenv("MISTRAL_API_KEY"))
-                self.api_key = os.getenv("MISTRAL_API_KEY")
-            else:
-                raise ValueError(
-                    "No API key provided. Please provide an API key either through:\n"
-                    "1. The api_key parameter\n"
-                    "2. config.set_api_key('mixtral', 'your-api-key')\n"
-                    "3. MISTRAL_API_KEY environment variable"
-                )
+            self.api_key = os.getenv("MISTRAL_API_KEY")
+        
+        if not self.api_key:
+            raise ValueError(
+                "No API key provided. Please provide an API key either through:\n"
+                "1. The api_key parameter\n"
+                "2. MISTRAL_API_KEY environment variable"
+            )
 
         self.client = Mistral(api_key=self.api_key)
         self.messages = messages
