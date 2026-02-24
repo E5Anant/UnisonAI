@@ -257,9 +257,6 @@ class Agent:
                 answer = input(f"{Fore.CYAN}  You: {Style.RESET_ALL}")
                 return f"User answered: {answer}"
 
-            if func_name == "pass_result":
-                return ("__PASS_RESULT__", kwargs.get("result", ""))
-
             # ── User-defined tools ──
             for tool in self.rawtools:
                 inst = tool if not isinstance(tool, type) else tool()
@@ -299,10 +296,7 @@ class Agent:
                 'send_message(agent_name: string, message: string)\n'
                 '  Send a message to another agent in the clan.\n'
                 '  - agent_name (string, required): Name of the target agent\n'
-                '  - message (string, required): Message content\n\n'
-                'pass_result(result: string)\n'
-                '  Deliver the final result to the user. Call this when the task is complete.\n'
-                '  - result (string, required): The final output to deliver'
+                '  - message (string, required): Message content'
             )
             if self.ask_user:
                 builtins += (
@@ -373,8 +367,9 @@ class Agent:
         # ── Agentic loop ──
         max_turns = 10
         current_input = task
+        input_role = None  # None = default user role; set to "tool" after tool execution
         for turn in range(max_turns):
-            response = self.llm.run(current_input, save_messages=True)
+            response = self.llm.run(current_input, save_messages=True, input_role=input_role)
 
             # Save history
             try:
@@ -408,23 +403,14 @@ class Agent:
             for call in tool_calls:
                 result = self.execute_tool_call(call)
 
-                # Handle pass_result → terminate immediately
-                if isinstance(result, tuple) and result[0] == "__PASS_RESULT__":
-                    final = result[1]
-                    if self.verbose:
-                        self._print_answer(final)
-                    if self.output_file:
-                        with open(self.output_file, "w", encoding="utf-8") as f:
-                            f.write(str(final))
-                    return final
-
                 if self.verbose:
                     self._print_tool(call, result)
 
                 tool_outputs.append(f"Tool `{call}` returned:\n{result}")
 
-            # Feed results back
+            # Feed results back as tool role
             current_input = "\n\n".join(tool_outputs)
+            input_role = "tool"
 
         # Exhausted turns
         if self.verbose:
