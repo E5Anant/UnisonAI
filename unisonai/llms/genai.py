@@ -10,6 +10,7 @@ load_dotenv()
 class Gemini:
     USER = "user"
     MODEL = "model"
+    TOOL = "tool"
 
     def __init__(self,
                  messages: list[dict[str, str]] = [],
@@ -81,10 +82,23 @@ class Gemini:
                 }
             )
 
-    def run(self, prompt: str, save_messages: bool = True) -> str:
+    def _get_api_messages(self):
+        """Return messages with 'tool' role mapped to 'user' for API compatibility."""
+        api_msgs = []
+        for msg in self.messages:
+            if msg.get("role") == "tool":
+                mapped = dict(msg)
+                mapped["role"] = self.USER
+                api_msgs.append(mapped)
+            else:
+                api_msgs.append(msg)
+        return api_msgs
+
+    def run(self, prompt: str, save_messages: bool = True, input_role: str = None) -> str:
+        role = input_role if input_role else self.USER
         if save_messages:
-            self.add_message(self.USER, prompt)
-        self.chat_session = self.client.start_chat(history=self.messages)
+            self.add_message(role, prompt)
+        self.chat_session = self.client.start_chat(history=self._get_api_messages())
         response = self.chat_session.send_message(prompt)
         r = response.text
         if save_messages:
