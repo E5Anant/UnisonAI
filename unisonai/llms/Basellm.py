@@ -12,6 +12,7 @@ class BaseLLM(ABC):
     USER = "user"
     MODEL = "assistant"
     SYSTEM = "system"
+    TOOL = "tool"
 
     def __init__(self, 
                  messages: Optional[List[Dict[str, str]]] = None,
@@ -86,8 +87,23 @@ class BaseLLM(ABC):
         
         return summary[:200]  # Cap at 200 chars
 
+    def _get_api_messages(self):
+        """Return messages with 'tool' role mapped to 'user' for API compatibility.
+        
+        Providers that natively support the 'tool' role can override this method.
+        """
+        api_msgs = []
+        for msg in self.messages:
+            if msg.get("role") == "tool":
+                mapped = dict(msg)
+                mapped["role"] = self.USER
+                api_msgs.append(mapped)
+            else:
+                api_msgs.append(msg)
+        return api_msgs
+
     @abstractmethod
-    def run(self, prompt: str, save_messages: bool = True) -> str:
+    def run(self, prompt: str, save_messages: bool = True, input_role: str = None) -> str:
         """
         Run the model with the given prompt.
         
