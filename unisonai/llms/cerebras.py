@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from rich import print
 from typing import Type, Optional, List, Dict
-from ..config import config
 
 load_dotenv()
 
@@ -52,23 +51,18 @@ class CerebrasLLM:
         """
         # Configure API key
         if api_key:
-            config.set_api_key('cerebras', api_key)
-            self.client = CerebrasSDK.Client(api_key=api_key)
+            self.api_key = api_key
         else:
-            stored_key = config.get_api_key('cerebras')
-            if stored_key:
-                self.client = CerebrasSDK.Client(api_key=stored_key)
-            elif os.getenv("CEREBRAS_API_KEY"):
-                config.set_api_key('cerebras', os.getenv("CEREBRAS_API_KEY"))
-                self.client = CerebrasSDK.Client(
-                    api_key=os.getenv("CEREBRAS_API_KEY"))
-            else:
-                raise ValueError(
-                    "No API key provided. Please provide an API key either through:\n"
-                    "1. The api_key parameter\n"
-                    "2. config.set_api_key('cerebras', 'your-api-key')\n"
-                    "3. CEREBRAS_API_KEY environment variable"
-                )
+            self.api_key = os.getenv("CEREBRAS_API_KEY")
+
+        if not self.api_key:
+            raise ValueError(
+                "No API key provided. Please provide an API key either through:\n"
+                "1. The api_key parameter\n"
+                "2. CEREBRAS_API_KEY environment variable"
+            )
+        
+        self.client = CerebrasSDK.Client(api_key=self.api_key)
 
         self.messages = messages
         self.model = model
