@@ -1,216 +1,49 @@
 # Documentation Summary
 
-## 📚 Complete Documentation Structure
+## Documentation Files
 
-This comprehensive documentation provides everything you need to master UnisonAI, from basic concepts to advanced implementations.
+| Document | Purpose |
+|----------|---------|
+| [README.md](README.md) | Overview, installation, parameter reference |
+| [quick-start.md](quick-start.md) | 5-minute setup guide |
+| [api-reference.md](api-reference.md) | Complete API documentation |
+| [usage-guide.md](usage-guide.md) | Best practices and patterns |
+| [tools-guide.md](tools-guide.md) | Tool creation guide (`@tool` and `BaseTool`) |
+| [architecture.md](architecture.md) | System design and data flow |
 
-### 📖 Core Documentation
+## Examples
 
-| Document | Purpose | Key Topics |
-|----------|---------|------------|
-| **[README.md](./README.md)** | Main overview and introduction | Architecture, features, quick start |
-| **[api-reference.md](./api-reference.md)** | Complete API documentation | Classes, methods, parameters |
-| **[architecture.md](./architecture.md)** | System design and architecture | Component diagrams, data flow |
-| **[usage-guide.md](./usage-guide.md)** | Practical usage patterns | Best practices, examples, troubleshooting |
-| **[tools-guide.md](./tools-guide.md)** | Tool development guide | Custom tools, validation, patterns |
-| **[quick-start.md](./quick-start.md)** | Fast-track guide | 2-15 minute setup guides |
+| File | What It Shows |
+|------|---------------|
+| [basic_agent.py](../examples/basic_agent.py) | Minimal agent, no tools |
+| [tool_example.py](../examples/tool_example.py) | `@tool` decorator and `BaseTool` class |
+| [advanced_tools.py](../examples/advanced_tools.py) | Stateful tools with agent |
+| [single_agent_example.py](../examples/single_agent_example.py) | Agent with time and calculator tools |
+| [clan-agent_example.py](../examples/clan-agent_example.py) | Multi-agent travel planning clan |
+| [clan_coordination.py](../examples/clan_coordination.py) | Research team coordination |
 
-### 💻 Code Examples
+## Learning Path
 
-| Example File | Description | Key Learning |
-|-------------|-------------|--------------|
-| **[basic_agent.py](./examples/basic_agent.py)** | Simple agent setup | Basic agent creation and usage |
-| **[advanced_tools.py](./examples/advanced_tools.py)** | Sophisticated tool development | Complex tools, validation, error handling |
-| **[clan_coordination.py](./examples/clan_coordination.py)** | Multi-agent coordination | Clan setup, agent specialization, teamwork |
+1. **Start here** — [Quick Start](quick-start.md) (5 min)
+2. **Add tools** — [Tool Guide](tools-guide.md) (10 min)
+3. **Build a clan** — [Usage Guide](usage-guide.md) (10 min)
+4. **Deep dive** — [API Reference](api-reference.md) + [Architecture](architecture.md)
 
-## 🎯 Learning Paths
+## Checklists
 
-### 🏃‍♂️ Quick Start Path (15-30 minutes)
+### Setup
+- [ ] Python 3.10–3.12 installed
+- [ ] `pip install unisonai`
+- [ ] API key configured
 
-1. **Read [Quick Start Guide](./quick-start.md)** (5 minutes)
-2. **Run [basic_agent.py](./examples/basic_agent.py)** (5 minutes)
-3. **Try [advanced_tools.py](./examples/advanced_tools.py)** (10 minutes)
-4. **Experiment with your own tasks** (10-15 minutes)
+### Tool Development
+- [ ] Purpose defined
+- [ ] Parameters typed correctly
+- [ ] Error cases handled
+- [ ] Tested with agent
 
-### 🏗️ Developer Path (2-4 hours)
-
-1. **Read [Architecture Guide](./architecture.md)** (30 minutes)
-2. **Study [API Reference](./api-reference.md)** (45 minutes)
-3. **Work through [Tool Guide](./tools-guide.md)** (45 minutes)
-4. **Implement [clan_coordination.py](./examples/clan_coordination.py)** (30 minutes)
-5. **Build your own custom tools** (30-60 minutes)
-
-### 🔧 Advanced Path (2-4 hours)
-
-1. **Master complex clan coordination patterns** (60 minutes)
-2. **Build production-ready agent systems** (60-90 minutes)
-3. **Implement advanced tool integrations** (45 minutes)
-4. **Create custom LLM integrations** (30-60 minutes)
-
-## 🔍 Key Concepts
-
-### Core Architecture
-
-- **Agent**: Unified agent class for standalone tasks or clan membership
-- **Clan**: Coordinated teams of agents working together
-- **Tool System**: Extensible framework for agent capabilities
-
-### Design Principles
-
-- **Type Safety**: Strong typing with validation at every level
-- **Modularity**: Components can be used independently or together
-- **Extensibility**: Easy to add new tools, LLMs, and integrations
-- **Error Handling**: Comprehensive error management and recovery
-- **Production Ready**: Designed for real-world deployment
-
-## 🚀 Common Use Cases
-
-### 1. Research Assistant
-```python
-# Intelligent research and analysis
-research_agent = Agent(
-    llm=Gemini(),
-    tools=[RAGTool, CalculatorTool],
-    identity="Research Expert"
-)
-```
-
-### 2. Task Automation
-```python
-# Automated workflow processing
-automation_clan = Clan(
-    manager=coordinator,
-    members=[researcher, analyst, executor],
-    goal="Automate complex workflows"
-)
-```
-
-### 3. Data Analysis
-```python
-# Statistical analysis and insights
-analysis_agent = Agent(
-    llm=Gemini(),
-    tools=[DataAnalysisTool, VisualizationTool],
-    identity="Data Scientist"
-)
-```
-
-### 4. Content Generation
-```python
-# Automated content creation
-content_clan = Clan(
-    manager=planner,
-    members=[researcher, writer, editor],
-    goal="Generate high-quality content"
-)
-```
-
-## 🛠️ Development Workflow
-
-### 1. Planning Phase
-- Define your use case and requirements
-- Identify needed capabilities and tools
-- Plan agent roles and responsibilities
-
-### 2. Development Phase
-- Set up development environment
-- Create or configure required tools
-- Implement agent logic and coordination
-
-### 3. Testing Phase
-- Test individual components
-- Validate agent interactions
-- Test error scenarios and edge cases
-
-### 4. Deployment Phase
-- Configure production settings
-- Set up monitoring and logging
-- Deploy and validate in production
-
-## 📋 Checklists
-
-### ✅ Pre-Development Checklist
-
-- [ ] Python 3.10-3.12 installed
-- [ ] Required API keys obtained
-- [ ] Development environment set up
-- [ ] Basic understanding of use case
-
-### ✅ Tool Development Checklist
-
-- [ ] Tool purpose clearly defined
-- [ ] Parameter types properly specified
-- [ ] Error handling implemented
-- [ ] Documentation provided
-- [ ] Testing completed
-
-### ✅ Agent Development Checklist
-
-- [ ] Agent identity and role defined
-- [ ] Appropriate tools selected
-- [ ] System prompts optimized
-- [ ] History management configured
-- [ ] Testing with various tasks
-
-### ✅ Clan Development Checklist
-
-- [ ] Manager agent capabilities verified
-- [ ] Member agent roles defined
-- [ ] Coordination strategy planned
-- [ ] Shared instructions optimized
-- [ ] Inter-agent communication tested
-
-## 🔧 Troubleshooting Guide
-
-### Common Issues
-
-| Issue | Likely Cause | Solution |
-|-------|-------------|----------|
-| API Key Errors | Invalid or missing keys | Check key configuration and validity |
-| Tool Failures | Parameter validation issues | Review tool parameter definitions |
-| Agent Not Responding | LLM provider issues | Verify API connectivity and quotas |
-| Memory Issues | Large histories or datasets | Implement history cleanup and limits |
-
-### Debug Mode
-
-Enable verbose logging for detailed troubleshooting:
-
-```python
-agent = Agent(
-    llm=your_llm,
-    verbose=True,  # Enable debug logging
-    # ... other parameters
-)
-```
-
-## 📞 Support and Resources
-
-### Documentation
-- **Quick Start**: [quick-start.md](./quick-start.md)
-- **API Reference**: [api-reference.md](./api-reference.md)
-- **Examples**: [examples/](./examples/) folder
-
-### Community
-- **GitHub Issues**: Report bugs and request features
-- **Discussions**: Community discussions and Q&A
-- **Contributing**: Guidelines for contributing to UnisonAI
-
-### Additional Resources
-- **LLM Provider Documentation**: Check individual provider docs
-- **Best Practices**: See usage guidelines in [usage-guide.md](./usage-guide.md)
-
-## 🎉 Next Steps
-
-Now that you have a complete understanding of UnisonAI:
-
-1. **Start Building**: Begin with the [Quick Start Guide](./quick-start.md)
-2. **Explore Examples**: Run and modify the example files
-3. **Create Custom Tools**: Build tools for your specific use cases
-4. **Deploy Solutions**: Move from development to production
-5. **Contribute Back**: Share your tools and improvements with the community
-
----
-
-**Happy coding with UnisonAI!** 🚀
-
-*This documentation was generated for UnisonAI framework. For the latest updates, check the official repository.*
+### Clan Development
+- [ ] Manager agent chosen
+- [ ] Member roles defined
+- [ ] Shared instructions written (keep concise)
+- [ ] Goal clearly stated
