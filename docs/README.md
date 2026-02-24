@@ -14,7 +14,7 @@ UnisonAI is a lightweight Python framework for building single-agent and multi-a
 ## Installation
 
 ```bash
-pip install unisonai
+pip install unisonai-sdk
 ```
 
 **Requirements:** Python 3.10–3.12, API key for your chosen LLM provider.
@@ -39,7 +39,7 @@ from unisonai import Agent
 from unisonai.llms import Gemini
 
 agent = Agent(
-    llm=Gemini(model="gemini-2.0-flash"),
+    llm=Gemini(model="gemini-2.5-flash"),
     identity="Assistant",
     description="A helpful AI assistant",
 )
